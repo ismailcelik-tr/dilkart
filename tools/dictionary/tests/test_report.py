@@ -3,7 +3,7 @@ import sqlite3
 from dilkart_dict.build import build
 from dilkart_dict.lookup import Direction
 from dilkart_dict.report import coverage
-from tests.test_build import SOURCES
+from dilkart_dict.fixture import SOURCES
 
 
 def test_coverage_counts_hits_examples_and_misses() -> None:

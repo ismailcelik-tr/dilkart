@@ -3,7 +3,7 @@ import sqlite3
 from dilkart_dict.build import build
 from dilkart_dict.gold import Match, evaluate
 from dilkart_dict.lookup import Direction
-from tests.test_build import SOURCES
+from dilkart_dict.fixture import SOURCES
 
 
 def _db() -> sqlite3.Connection:
