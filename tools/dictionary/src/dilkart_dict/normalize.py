@@ -1,11 +1,12 @@
 import re
 import unicodedata
 
-__all__ = ["search_key"]
+__all__ = ["search_key", "turkish_lower"]
 
 # Turkish casing: str.lower() maps "I" to "i" and "İ" to "i" + combining dot.
 _TR_UPPER = str.maketrans({"I": "ı", "İ": "i"})
 _TR_FOLD = str.maketrans("çğıöşü", "cgiosu")
+_CIRCUMFLEX = "\u0302"
 _APOSTROPHES = re.compile(r"['’]")
 _SEPARATORS = re.compile(r"[-‐_/]")
 _PUNCTUATION = re.compile(r"[^\w\s]")
@@ -18,4 +19,11 @@ def search_key(text: str) -> str:
     s = _APOSTROPHES.sub("", s)
     s = _SEPARATORS.sub(" ", s)
     s = _PUNCTUATION.sub("", s)
+    return " ".join(s.split())
+
+
+def turkish_lower(text: str) -> str:
+    """Lowercase keeping Turkish letters (ç ğ ı ö ş ü); drops circumflex (â î û); must match packages/core."""
+    s = unicodedata.normalize("NFC", text).translate(_TR_UPPER).lower()
+    s = unicodedata.normalize("NFC", unicodedata.normalize("NFD", s).replace(_CIRCUMFLEX, ""))
     return " ".join(s.split())

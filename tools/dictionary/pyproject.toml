@@ -6,7 +6,10 @@ requires-python = ">=3.13"
 dependencies = []
 
 [dependency-groups]
-dev = ["pytest>=8"]
+dev = [
+    "pytest>=8",
+    "wordfreq>=3.1.1",
+]
 
 [build-system]
 requires = ["hatchling"]
