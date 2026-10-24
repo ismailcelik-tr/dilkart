@@ -1,0 +1,9 @@
+node_modules/
+coverage/
+.DS_Store
+*.tsbuildinfo
+
+# Secrets: only .env.example is tracked
+.env
+.env.*
+!.env.example
