@@ -41,3 +41,6 @@ example
 # generated native folders
 /ios
 /android
+
+# Built by tools/dictionary; too large for git
+/assets/dictionary/
