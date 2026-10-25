@@ -93,6 +93,7 @@ function DictionaryButton() {
       accessibilityRole="button"
       onPress={() => router.push("/dictionary")}
       hitSlop={8}
+      style={{ paddingHorizontal: 12 }}
     >
       <Text style={{ fontSize: 17, color: "#007AFF" }}>Sözlük</Text>
     </Pressable>

@@ -72,6 +72,13 @@ describe("decks", () => {
 });
 
 describe("deck list", () => {
+  it("covers the swipe action with an opaque row", async () => {
+    await deckWithCard();
+    await renderRouter(APP, { initialUrl: "/" });
+
+    expect(await screen.findByTestId("swipe-row")).toHaveStyle({ backgroundColor: "#FFFFFF" });
+  });
+
   it("deletes a deck from its swipe action after confirming", async () => {
     const { cardId } = await deckWithCard();
     await renderRouter(APP, { initialUrl: "/" });

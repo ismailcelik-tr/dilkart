@@ -7,8 +7,21 @@ jest.mock("react-native-gesture-handler/ReanimatedSwipeable", () => {
   const methods = { close: () => undefined, openLeft: () => undefined, openRight: () => undefined, reset: () => undefined };
   return {
     __esModule: true,
-    default: ({ children, renderRightActions }: { children: unknown; renderRightActions?: (...args: unknown[]) => unknown }) =>
-      createElement(View, null, children, renderRightActions?.(undefined, undefined, methods)),
+    default: ({
+      children,
+      renderRightActions,
+      childrenContainerStyle,
+    }: {
+      children: unknown;
+      renderRightActions?: (...args: unknown[]) => unknown;
+      childrenContainerStyle?: unknown;
+    }) =>
+      createElement(
+        View,
+        null,
+        createElement(View, { testID: "swipe-row", style: childrenContainerStyle }, children),
+        renderRightActions?.(undefined, undefined, methods),
+      ),
   };
 });
 

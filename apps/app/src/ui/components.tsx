@@ -83,6 +83,8 @@ export function SwipeToDelete({ label, onDelete, children }: { label: string; on
       friction={2}
       rightThreshold={40}
       overshootRight={false}
+      // The action sits behind the row; a transparent row would show it before any swipe.
+      childrenContainerStyle={{ backgroundColor: theme.surface }}
       renderRightActions={(_progress, _translation, swipeable) => (
         <Pressable
           accessibilityRole="button"
