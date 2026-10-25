@@ -1,6 +1,7 @@
 packages:
   - apps/*
   - packages/*
+  - tools/sync-harness
 allowBuilds:
   unrs-resolver: true
 minimumReleaseAgeExclude:

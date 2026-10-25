@@ -7,6 +7,7 @@ export type { RemoteRow };
 /** Bump with every local schema change; sync_push rejects versions below app_config.min_schema_version. */
 export const SCHEMA_VERSION = 1;
 export const PUSH_BATCH = 500;
+// Must not exceed PostgREST api.max_rows, or a truncated page ends the pull early.
 export const PULL_PAGE = 1_000;
 
 const BASE_DELAY_MS = 1_000;

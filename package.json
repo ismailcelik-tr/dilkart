@@ -8,6 +8,7 @@
   "scripts": {
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck",
-    "test": "pnpm -r test"
+    "test": "pnpm -r test",
+    "test:sync": "pnpm --filter @dilkart/sync-harness test:sync"
   }
 }
