@@ -11,6 +11,8 @@ export class FakeSupabase {
   rows: RemoteRow[] = [];
   pushed: Op[] = [];
   outage = false;
+  /** While set, RPCs wait for it, so a test can act during a sync round. */
+  gate?: Promise<void>;
   private listeners = new Set<Listener>();
 
   user(email: string, password = "pass1234", confirmed = true) {
@@ -78,6 +80,7 @@ export class FakeSupabase {
   };
 
   rpc = async (fn: string, args: Record<string, unknown>) => {
+    await this.gate;
     if (this.outage) {
       return { data: null, error: { message: "offline" }, status: 0 };
     }

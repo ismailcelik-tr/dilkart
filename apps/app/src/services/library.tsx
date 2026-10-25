@@ -41,6 +41,8 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
   const current = useRef<AppData>(undefined);
   // The signed-out account's file, deleted once the guest database replaces it.
   const retiring = useRef<string>(undefined);
+  // Work on the account database (sync round, guest check) that must end before it closes.
+  const busy = useRef<Promise<unknown>>(Promise.resolve());
 
   useEffect(() => {
     if (supabase === undefined) {
@@ -69,6 +71,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       current.current = next;
       setData(next);
       if (previous !== undefined && previous !== next) {
+        await busy.current;
         await previous.close();
         if (retiring.current === previous.name) {
           retiring.current = undefined;
@@ -82,13 +85,14 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
   }, [name]);
 
   /** After the first sync of a sign-in: empty account takes guest data at once, otherwise ask. */
-  const offerGuestData = async (account: AppData, id: string) => {
-    if ((await Storage.getItem(keptGuestKey(id))) !== null) {
+  const offerGuestData = async (account: AppData, id: string, svc: SyncService) => {
+    const cancelled = () => service.current !== svc;
+    if ((await Storage.getItem(keptGuestKey(id))) !== null || cancelled()) {
       return;
     }
     const g = await openData(GUEST_DB);
     const count = (await g.library.allCards()).length;
-    if (count === 0) {
+    if (count === 0 || cancelled()) {
       await g.close();
       return;
     }
@@ -115,25 +119,28 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
     await service.current?.run();
   };
 
+  const uidOpen = data !== undefined && uid !== undefined && data.name === userDb(uid) ? uid : undefined;
+
   useEffect(() => {
-    if (data === undefined || uid === undefined || supabase === undefined) {
+    if (data === undefined || uidOpen === undefined || supabase === undefined) {
       return;
     }
     const svc = new SyncService(data.store, rpcRemote(supabase, supabaseUrl), data.study, setStatus);
     service.current = svc;
     svc.start();
-    void svc.run().then(() => offerGuestData(data, uid));
+    busy.current = svc.run().then(() => offerGuestData(data, uidOpen, svc));
     return () => {
-      svc.stop();
       service.current = undefined;
+      busy.current = Promise.all([busy.current, svc.stop()]).catch(() => undefined);
     };
     // offerGuestData only reads refs and setters.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data, uid]);
+  }, [data, uidOpen]);
 
   const account: Account = {
     client: supabase,
-    email: session?.user.email,
+    // Only once the account's database is open; until then screens still hold the guest data.
+    email: uidOpen === undefined ? undefined : session?.user.email,
     status,
     guestCards,
     syncNow: async () => service.current?.run(),
@@ -150,7 +157,6 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       if (supabase === undefined || uid === undefined) {
         return;
       }
-      service.current?.stop();
       retiring.current = userDb(uid);
       await supabase.auth.signOut({ scope: "local" });
     },

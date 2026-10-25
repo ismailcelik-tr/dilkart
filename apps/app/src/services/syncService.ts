@@ -27,6 +27,7 @@ export class SyncService {
   private stopListening: (() => void)[] = [];
   private running?: Promise<void>;
   private attempt = 0;
+  private stopped = false;
   private status: SyncStatus = { pending: 0, failed: 0, problem: SyncProblem.None };
 
   constructor(
@@ -44,15 +45,21 @@ export class SyncService {
     this.poll = setInterval(() => this.schedule(0), POLL_MS);
   }
 
-  stop(): void {
+  /** Resolves once a round in progress has finished, so the database can close. */
+  async stop(): Promise<void> {
+    this.stopped = true;
     clearTimeout(this.timer);
     clearInterval(this.poll);
     this.stopListening.forEach((stop) => stop());
     this.stopListening = [];
+    await this.running;
   }
 
   /** One round now; resolves when it ends, whatever the outcome. */
   run(): Promise<void> {
+    if (this.stopped) {
+      return Promise.resolve();
+    }
     this.running ??= this.round().finally(() => {
       this.running = undefined;
     });
@@ -60,6 +67,9 @@ export class SyncService {
   }
 
   private schedule(delayMs: number): void {
+    if (this.stopped) {
+      return;
+    }
     clearTimeout(this.timer);
     this.timer = setTimeout(() => void this.run(), delayMs);
   }
@@ -77,6 +87,9 @@ export class SyncService {
       if (problem === SyncProblem.Offline) {
         this.schedule(retryDelay(this.attempt++));
       }
+    }
+    if (this.stopped) {
+      return;
     }
     this.status = { ...this.status, ...(await this.store.counts()), problem };
     this.onStatus({ ...this.status });

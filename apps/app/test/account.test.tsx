@@ -1,4 +1,7 @@
 import { Table } from "@dilkart/core";
+import { existsSync, mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { fireEvent, renderRouter, screen, waitFor } from "expo-router/testing-library";
 import { Alert, type AlertButton } from "react-native";
 
@@ -15,21 +18,24 @@ jest.mock("@/services/openData", () => ({ openData: jest.fn(), deleteData: jest.
 const APP = "./src/app";
 const EMAIL = "ali@example.com";
 const PASSWORD = "pass1234";
-let files: Map<string, Awaited<ReturnType<typeof testData>>>;
+type Data = Awaited<ReturnType<typeof testData>>;
+/** Latest connection per database file. */
+let files: Map<string, Data>;
+let dir: string;
+const pathOf = (name: string) => join(dir, name);
+const exists = (name: string) => existsSync(pathOf(name));
 
 beforeEach(() => {
   files = new Map();
-  Object.assign(mockSupabase, { session: null, rows: [], pushed: [], outage: false });
+  dir = mkdtempSync(join(tmpdir(), "dilkart-"));
+  Object.assign(mockSupabase, { session: null, rows: [], pushed: [], outage: false, gate: undefined });
   mockSupabase.users.clear();
   jest.mocked(openData).mockImplementation(async (name = GUEST_DB) => {
-    let data = files.get(name);
-    if (data === undefined) {
-      data = await testData(undefined, name);
-      files.set(name, data);
-    }
+    const data = await testData(undefined, name, pathOf(name));
+    files.set(name, data);
     return data;
   });
-  jest.mocked(deleteData).mockImplementation(async (name) => void files.delete(name));
+  jest.mocked(deleteData).mockImplementation(async (name) => rmSync(pathOf(name), { force: true }));
   jest.spyOn(global, "fetch").mockResolvedValue(new Response(null, { headers: { date: new Date().toUTCString() } }));
 });
 
@@ -102,7 +108,7 @@ describe("guest data", () => {
     await signInVia();
 
     await waitFor(async () => expect(await files.get(userDb(uid))?.library.allCards()).toHaveLength(1));
-    await waitFor(() => expect(files.has(GUEST_DB)).toBe(false));
+    await waitFor(() => expect(exists(GUEST_DB)).toBe(false));
     await waitFor(() => expect(mockSupabase.pushed.some((op) => op.table === Table.Cards)).toBe(true));
   });
 
@@ -115,9 +121,9 @@ describe("guest data", () => {
 
     expect(await screen.findByText("Misafirken bu cihaza eklenmiş 1 kart var.")).toBeOnTheScreen();
     await fireEvent.press(screen.getByText("Hesabıma ekle"));
-    await waitFor(async () =>
-      expect((await files.get(userDb(uid))?.library.decks())?.map((d) => d.name)).toEqual(["Fiiller", "Tekrar"]),
-    );
+    // The prompt closes only after the merged data is sent; wait so no navigation leaks into the next test.
+    await waitFor(() => expect(screen.queryByText("Hesabıma ekle")).toBeNull());
+    expect((await files.get(userDb(uid))?.library.decks())?.map((d) => d.name)).toEqual(["Fiiller", "Tekrar"]);
   });
 
   it("keeps guest cards on the device when declined", async () => {
@@ -127,7 +133,8 @@ describe("guest data", () => {
     await renderRouter(APP, { initialUrl: "/account" });
     await signInVia();
     await fireEvent.press(await screen.findByText("Bu cihazda bırak"));
-    expect(files.has(GUEST_DB)).toBe(true);
+    await waitFor(() => expect(screen.queryByText("Bu cihazda bırak")).toBeNull());
+    expect(exists(GUEST_DB)).toBe(true);
   });
 });
 
@@ -155,7 +162,49 @@ describe("signed in", () => {
     });
     await fireEvent.press(screen.getByText("Çıkış yap"));
     expect(Alert.alert).toHaveBeenCalledWith("Çıkış yap", expect.stringContaining("1 değişiklik"), expect.any(Array));
-    await waitFor(() => expect(files.has(userDb(uid))).toBe(false));
+    await waitFor(() => expect(exists(userDb(uid))).toBe(false));
     expect(await screen.findByText("Hesap oluştur")).toBeOnTheScreen();
+  });
+});
+
+describe("database lifecycle", () => {
+  it("signs out cleanly while a sync round is running", async () => {
+    const uid = mockSupabase.user(EMAIL, PASSWORD);
+    await renderRouter(APP, { initialUrl: "/account" });
+    await signInVia();
+    await screen.findByText(/Son eşitleme: /);
+
+    let release = () => undefined as void;
+    mockSupabase.gate = new Promise<void>((r) => (release = r));
+    await fireEvent.press(screen.getByText("Şimdi eşitle"));
+    jest.spyOn(Alert, "alert").mockImplementationOnce((_t, _m, buttons?: AlertButton[]) => {
+      buttons?.find((b) => b.style === "destructive")?.onPress?.();
+    });
+    await fireEvent.press(screen.getByText("Çıkış yap"));
+    release();
+
+    await waitFor(() => expect(exists(userDb(uid))).toBe(false));
+    expect(await screen.findByText("Hesap oluştur")).toBeOnTheScreen();
+  });
+
+  it("shows the account only once its database is open", async () => {
+    const uid = mockSupabase.user(EMAIL, PASSWORD);
+    let release = () => undefined as void;
+    const gate = new Promise<void>((r) => (release = r));
+    jest.mocked(openData).mockImplementation(async (name = GUEST_DB) => {
+      if (name === userDb(uid)) {
+        await gate;
+      }
+      const data = await testData(undefined, name, pathOf(name));
+      files.set(name, data);
+      return data;
+    });
+    await renderRouter(APP, { initialUrl: "/account" });
+    await signInVia();
+
+    await waitFor(() => expect(mockSupabase.session).not.toBeNull());
+    expect(screen.queryByText(EMAIL)).toBeNull();
+    release();
+    expect(await screen.findByText(EMAIL)).toBeOnTheScreen();
   });
 });
