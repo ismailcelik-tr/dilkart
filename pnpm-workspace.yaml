@@ -3,6 +3,7 @@ packages:
   - packages/*
   - tools/sync-harness
 allowBuilds:
+  '@parcel/watcher': false
   unrs-resolver: true
 minimumReleaseAgeExclude:
   - '@expo/cli@58.1.15'
