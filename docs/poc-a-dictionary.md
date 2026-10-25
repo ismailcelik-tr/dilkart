@@ -54,14 +54,19 @@ Notlar:
 - **Python ve TypeScript aynı davranır:** `spec/*.json` vektörleri ve
   `spec/fixtures/dictionary.sqlite` üzerinde iki tarafta da aynı sözleşme testleri.
 
-## Bilinen eksikler (Aşama 6'ya)
+## Bilinen eksikler
 
-- `-ly` zarfları (`significantly`, `widely`): sıfat köküne düşen yedek kural.
-- EN→EN işlev kelimeleri: İngilizce Vikisözlük tanımlarıyla tamamlanabilir (boyut etkisi ölçülmeli).
-- Girdi sıralaması: `go` için isim ("go oyunu") fiilin önüne geçiyor; tür önceliği gerekebilir.
-- Paket açılışı: simülatörde 105 ms (asset kopyası dahil); iPhone'da 2.666 ms, ama dev
-  modunda Wi-Fi indirmesi dahil. Gömülü 97 MB kopya release build'de ölçülmeli.
-- Lisans: CC BY-SA paketi GitHub Releases'te açık yayınlanacak; atıf ekranı Aşama 6.
+Aşama 6'da kapatılanlar (25 Eki 2026; paket 97,0 → 106,5 MB, şema sürümü 2):
+- `-ly` zarfları sıfat köküne düşer (`gently → gentle`, `basically → basic`); EN→TR kapsam %96,8.
+- EN→EN: WordNet'te olmayan kelimelere İngilizce Vikisözlük tanımları (en çok 3); kapsam %92,0 → %98,9.
+  Kaynaklar sözcük türüne farklı ad verebildiği için (`the`: Vikisözlük "particle", Wiktionary
+  "article") eşleşme kelime düzeyine de düşer.
+- Girdi sırası İngilizce Vikisözlük sayfa sırasıyla (`entries.rank`): `go` → fiil, `book` → isim.
+
+Kalan:
+- Paket açılışı: simülatörde 105 ms (asset kopyası dahil); gerçek cihazda gömülü kopya
+  release build'de ölçülmeli (Aşama 11).
+- Atıf ekranı Aşama 6'da.
 
 ## Karar
 

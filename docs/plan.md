@@ -515,6 +515,9 @@ PoC'lerden aşamalara eklenenler (aynı gün onaylandı):
   dağıtılır; eşleştirme turu 6 çift (en az 4 kart); modül oturum başında seçilir (son seçim
   hatırlanır). `cards.fsrs_state` senkronize edilmez: cihazda loglardan türetilen önbellek.
   Öğrenme adımları (dakikalık) oturumda erken cevaplanırsa zamanlamaya sayılır (karar 5'e ek).
+- **Aşama 6:** sözlük paketi uygulamaya gömülür (uygulama boyutu büyüyebilir); paket
+  GitHub Releases'te `dictionary-v1` olarak yayınlanır, build öncesi SHA-256 ile indirilir;
+  hiç deste yoksa sözlükten eklenen kart "Sözlükten" destesine gider.
 - **Aşama 6:** sözlük eksikleri (`-ly` zarfları, `go` tür sırası, EN→EN
   işlev kelimeleri — önce boyut etkisi ölçülür).
 - **Aşama 7:** kalıcı hata veren tek işlem `outbox_failed`'a taşınır, kuyruk

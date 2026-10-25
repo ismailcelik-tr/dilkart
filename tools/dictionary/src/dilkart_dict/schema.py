@@ -4,7 +4,7 @@ from enum import StrEnum
 
 __all__ = ["Lang", "Source", "SCHEMA_VERSION", "DDL", "INDEXES"]
 
-SCHEMA_VERSION = "1"
+SCHEMA_VERSION = "2"
 
 
 class Lang(StrEnum):
@@ -26,7 +26,8 @@ CREATE TABLE entries (
   lang TEXT NOT NULL,
   headword TEXT NOT NULL,
   key TEXT NOT NULL,
-  pos TEXT
+  pos TEXT,
+  rank INTEGER NOT NULL -- order among same-headword entries, English Wiktionary page order first
 );
 CREATE TABLE senses (
   id INTEGER PRIMARY KEY, -- stable hash of entry + target + gloss key

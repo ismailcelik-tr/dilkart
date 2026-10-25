@@ -23,6 +23,9 @@ _INFLECTION_GLOSSES = (re.compile(r"çekimi:\s*(.+)$"), re.compile(r"^(\S+) fiil
 _MAX_EXAMPLES = 3
 _MAX_TATOEBA_PER_TOKEN = 50
 _MAX_SYNONYMS = 5
+# English definitions from Wiktionary only fill entries WordNet does not cover.
+_MAX_DEFINITIONS = 3
+_SKIPPED_SENSE_TAGS = {"obsolete", "archaic"}
 _OEWN_POS = {"n": "noun", "v": "verb", "a": "adj", "s": "adj", "r": "adv"}
 # Ids are stored by the app and synced as card references; must stay below 2^53 for JS.
 _ID_BITS = 52
@@ -57,6 +60,7 @@ class _Entry:
     forms: set[str] = field(default_factory=set)
     synonyms: list[str] = field(default_factory=list)
     antonyms: list[str] = field(default_factory=list)
+    definitions: list[str] = field(default_factory=list)
 
     @property
     def eid(self) -> str:
@@ -100,6 +104,16 @@ def _reversible(gloss: str, lang: Lang) -> list[str]:
     return parts
 
 
+def _definitions(raw: dict) -> list[str]:
+    """Main gloss of each lemma sense; nested senses repeat it, so it is deduplicated."""
+    glosses = [
+        s["glosses"][0]
+        for s in raw["senses"]
+        if s["glosses"] and not s["form_of"] and not _SKIPPED_SENSE_TAGS & set(s["tags"])
+    ]
+    return list(dict.fromkeys(glosses))[:_MAX_DEFINITIONS]
+
+
 def _valid_headword(word: str) -> bool:
     """Drops affixes ("-ye") and scraping noise ("friend.")."""
     return word[:1].isalnum() and word[-1:].isalnum()
@@ -118,6 +132,11 @@ def _stable_id(*parts: str) -> int:
 class _Builder:
     def __init__(self) -> None:
         self.entries: dict[tuple[Lang, str, str | None], _Entry] = {}
+        # Part-of-speech order on English Wiktionary pages: editors list the main use first.
+        self.page_order: dict[tuple[Lang, str], list[str | None]] = defaultdict(list)
+        self.headwords: set[tuple[Lang, str]] = set()
+        # First-listed definitions per English word, for entries whose POS name differs by source.
+        self.word_definitions: dict[str, list[str]] = {}
         # (form key, lemma lang, lemma headword) resolved once all entries exist.
         self.form_links: set[tuple[str, Lang, str]] = set()
 
@@ -125,11 +144,19 @@ class _Builder:
         k = (lang, headword, pos)
         if k not in self.entries:
             self.entries[k] = _Entry(lang, headword, pos)
+            self.headwords.add((lang, headword))
         return self.entries[k]
+
+    def note_order(self, lang: Lang, word: str, pos: str | None) -> None:
+        order = self.page_order[(lang, word)]
+        if pos not in order:
+            order.append(pos)
 
     def add_wiktionary(self, raw: dict, target: Lang, source: Source) -> None:
         """Glosses in `target` language; form-of senses become lemma links."""
         lang = Lang(raw["lang"])
+        if source == Source.WIKTIONARY:
+            self.note_order(lang, raw["word"], raw["pos"])
         lemma_senses = []
         for s in raw["senses"]:
             lemmas = s["form_of"] + [
@@ -158,11 +185,17 @@ class _Builder:
         e.add_related(e.antonyms, raw["antonyms"])
 
     def add_translations(self, raw: dict) -> None:
-        if raw["translations_tr"]:
-            e = self.entry(Lang.EN, raw["word"], raw["pos"])
+        self.note_order(Lang.EN, raw["word"], raw["pos"])
+        key = (Lang.EN, raw["word"], raw["pos"])
+        definitions = _definitions(raw)
+        if (Lang.EN, raw["word"]) in self.headwords:
+            self.word_definitions.setdefault(raw["word"], definitions)
+        if raw["translations_tr"] or key in self.entries:
+            e = self.entry(*key)
             for t in raw["translations_tr"]:
                 e.add_sense(Lang.TR, t["word"], Source.WIKTIONARY, t["sense"])
             e.forms.update(raw["forms"])
+            e.definitions = definitions
 
         for s in raw["senses"]:
             for lemma in s["form_of"]:
@@ -197,6 +230,13 @@ class _Builder:
         for lang, headword, pos, target, gloss, source, context in added:
             self.entry(lang, headword, pos).add_sense(target, gloss, source, context, reversed=True)
 
+    def add_definitions(self) -> None:
+        """Wiktionary definitions for English entries without WordNet ones (function words)."""
+        for e in self.entries.values():
+            if e.lang == Lang.EN and not any(target == Lang.EN for target, _ in e.senses):
+                for d in e.definitions or self.word_definitions.get(e.headword, []):
+                    e.add_sense(Lang.EN, d, Source.WIKTIONARY)
+
     def add_tatoeba(self, pairs: Iterable[tuple[str, str]]) -> None:
         ordered = sorted(pairs, key=lambda p: len(p[0]))
         index: dict[tuple[Lang, str], list[int]] = defaultdict(list)
@@ -230,6 +270,7 @@ class _Builder:
         conn.executescript(DDL)
         ids: dict[tuple[Lang, str, str | None], int] = {}
         by_headword: dict[tuple[Lang, str], list[int]] = defaultdict(list)
+        unranked: dict[tuple[Lang, str], int] = defaultdict(int)
         for k, e in self.entries.items():
             if not e.senses or not _valid_headword(e.headword):
                 continue
@@ -237,9 +278,15 @@ class _Builder:
             entry_id = _stable_id(e.eid)
             ids[k] = entry_id
             by_headword[(e.lang, e.headword)].append(entry_id)
+            order = self.page_order.get((e.lang, e.headword), [])
+            if e.pos in order:
+                rank = order.index(e.pos)
+            else:
+                rank = len(order) + unranked[(e.lang, e.headword)]
+                unranked[(e.lang, e.headword)] += 1
             conn.execute(
-                "INSERT INTO entries (id, lang, headword, key, pos) VALUES (?, ?, ?, ?, ?)",
-                (entry_id, e.lang, e.headword, search_key(e.headword), e.pos),
+                "INSERT INTO entries (id, lang, headword, key, pos, rank) VALUES (?, ?, ?, ?, ?, ?)",
+                (entry_id, e.lang, e.headword, search_key(e.headword), e.pos, rank),
             )
             conn.executemany(
                 "INSERT INTO senses (id, entry_id, ord, target, gloss, context, source) VALUES (?, ?, ?, ?, ?, ?, ?)",
@@ -278,5 +325,6 @@ def build(conn: sqlite3.Connection, sources: Sources) -> None:
         b.add_wiktionary(raw, Lang.EN, Source.WIKTIONARY)
     b.add_wordnet(sources.oewn_entries, sources.oewn_synsets)
     b.reverse()
+    b.add_definitions()
     b.add_tatoeba(sources.tatoeba_pairs)
     b.write(conn)

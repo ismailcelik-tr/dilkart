@@ -7,7 +7,7 @@ from enum import StrEnum
 
 from dilkart_dict.normalize import search_key, turkish_lower
 from dilkart_dict.schema import Lang
-from dilkart_dict.stem import turkish_stems
+from dilkart_dict.stem import english_adverb_bases, turkish_stems
 
 __all__ = ["Direction", "Sense", "Result", "lookup"]
 
@@ -29,7 +29,7 @@ _LANGS = {
 }
 
 _HAS_TARGET = "EXISTS (SELECT 1 FROM senses s WHERE s.entry_id = e.id AND s.target = :target)"
-_RANKED = "e.id, e.headword, (SELECT count(*) FROM senses s WHERE s.entry_id = e.id AND s.target = :target)"
+_RANKED = "e.id, e.headword, (SELECT count(*) FROM senses s WHERE s.entry_id = e.id AND s.target = :target), e.rank"
 
 
 @dataclass(frozen=True)
@@ -70,14 +70,26 @@ def _entry_ids(
     return list(dict.fromkeys(ids))[:limit]
 
 
-def _live(rows: Iterable[tuple[int, str, int]]) -> list[tuple[int, str, int]]:
+def _live(rows: Iterable[tuple[int, str, int, int]]) -> list[tuple[int, str, int, int]]:
     return [r for r in rows if r[2] > 0]
 
 
 def _rank(query: str):
-    """Exact spelling first, then lowercase headwords (proper names last), then richer entries."""
+    """Exact spelling first, then lowercase headwords (proper names last), then page order, then richer entries."""
     typed = query.strip()
-    return lambda row: (row[1] != typed, not row[1][:1].islower(), -row[2], row[0])
+    return lambda row: (row[1] != typed, not row[1][:1].islower(), row[3], -row[2], row[0])
+
+
+def _adverb_ids(conn: sqlite3.Connection, query: str, target: Lang, limit: int) -> list[int]:
+    """Falls back from an unknown -ly adverb to its adjective."""
+    for base in english_adverb_bases(search_key(query)):
+        rows = conn.execute(
+            f"SELECT {_RANKED} FROM entries e WHERE e.lang = :lang AND e.key = :key",
+            {"lang": Lang.EN, "key": base, "target": target},
+        )
+        if ids := [r[0] for r in sorted(_live(rows), key=_rank(base))]:
+            return ids[:limit]
+    return []
 
 
 def _stemmed_ids(conn: sqlite3.Connection, query: str, target: Lang, limit: int) -> list[int]:
@@ -125,4 +137,6 @@ def lookup(
     ids = _entry_ids(conn, query, key, lang, target, prefix, limit)
     if not ids and lang == Lang.TR and not prefix:
         ids = _stemmed_ids(conn, query, target, limit)
+    if not ids and lang == Lang.EN and not prefix:
+        ids = _adverb_ids(conn, query, target, limit)
     return [_result(conn, i, target) for i in ids]

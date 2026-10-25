@@ -161,3 +161,18 @@ def test_parent_gloss_of_nested_senses_comes_first(db) -> None:
 
 def test_turkish_verb_form_glosses_become_form_links(db) -> None:
     assert [r.headword for r in lookup(db, "saw", Direction.EN_TR)] == ["see"]
+
+
+def test_homographs_follow_english_wiktionary_page_order(db) -> None:
+    results = lookup(db, "go", Direction.EN_TR)
+    assert [r.pos for r in results] == ["verb", "noun"]
+
+
+def test_english_definitions_fill_words_missing_from_wordnet(db) -> None:
+    [the] = lookup(db, "the", Direction.EN_EN)
+    assert [s.gloss for s in the.senses] == ["Definite grammatical article", "Used before a noun", "Used before a superlative"]
+
+
+def test_wordnet_words_get_no_wiktionary_definitions(db) -> None:
+    run = lookup(db, "run", Direction.EN_EN)[0]
+    assert {s.gloss for s in run.senses} == {"move fast by using one's feet"}

@@ -57,3 +57,28 @@ export function* turkishStems(word: string): Generator<string[]> {
     yield [...bases, ...withInfinitives(bases)];
   }
 }
+
+const VOWELS = "aeiou";
+const MIN_ADVERB = 5;
+
+/** Adjective candidates for an -ly adverb, most specific first: gently → gentle, gent. */
+export function englishAdverbBases(word: string): string[] {
+  if (!word.endsWith("ly") || word.length < MIN_ADVERB) {
+    return [];
+  }
+
+  const bases: string[] = [];
+  if (word.endsWith("ically")) {
+    bases.push(word.slice(0, -4)); // basically → basic
+  }
+  if (word.endsWith("ily")) {
+    bases.push(word.slice(0, -3) + "y"); // happily → happy
+  }
+  if (word.endsWith("lly")) {
+    bases.push(word.slice(0, -1)); // fully → full
+  } else if (!VOWELS.includes(word.at(-3) ?? "")) {
+    bases.push(word.slice(0, -1) + "e"); // gently → gentle
+  }
+  bases.push(word.slice(0, -2)); // quickly → quick
+  return [...new Set(bases)];
+}

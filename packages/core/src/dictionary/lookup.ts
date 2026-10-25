@@ -1,7 +1,7 @@
 // Lookup over the offline dictionary pack; mirrors tools/dictionary lookup.py.
 import { searchKey } from "../text/searchKey";
 import { turkishLower } from "../text/turkishLower";
-import { turkishStems } from "./stem";
+import { englishAdverbBases, turkishStems } from "./stem";
 
 export enum Direction {
   EnTr = "en-tr",
@@ -35,7 +35,7 @@ export interface LookupOptions {
 }
 
 type Lang = "en" | "tr";
-type Ranked = { id: number; headword: string; n: number };
+type Ranked = { id: number; headword: string; n: number; rank: number };
 
 const DEFAULT_LIMIT = 20;
 // Upper bound for a key prefix range scan.
@@ -48,15 +48,15 @@ const LANGS: Record<Direction, [Lang, Lang]> = {
 
 const HAS_TARGET = "EXISTS (SELECT 1 FROM senses s WHERE s.entry_id = e.id AND s.target = ?)";
 const RANKED =
-  "SELECT e.id AS id, e.headword AS headword," +
+  "SELECT e.id AS id, e.headword AS headword, e.rank AS rank," +
   " (SELECT count(*) FROM senses s WHERE s.entry_id = e.id AND s.target = ?) AS n FROM entries e";
 
 const startsLower = (word: string) => /^\p{Ll}/u.test(word);
 
-/** Exact spelling first, then lowercase headwords (proper names last), then richer entries. */
+/** Exact spelling first, then lowercase headwords (proper names last), then page order, then richer entries. */
 function rank(query: string, rows: Ranked[]): number[] {
   const typed = query.trim();
-  const score = (r: Ranked) => [Number(r.headword !== typed), Number(!startsLower(r.headword)), -r.n, r.id];
+  const score = (r: Ranked) => [Number(r.headword !== typed), Number(!startsLower(r.headword)), r.rank, -r.n, r.id];
   return rows
     .filter((r) => r.n > 0)
     .map((r) => ({ id: r.id, score: score(r) }))
@@ -126,6 +126,18 @@ async function stemmedIds(db: SqlReader, query: string, target: Lang, limit: num
   return [];
 }
 
+/** Falls back from an unknown -ly adverb to its adjective. */
+async function adverbIds(db: SqlReader, query: string, target: Lang, limit: number): Promise<number[]> {
+  for (const base of englishAdverbBases(searchKey(query))) {
+    const rows = await db.all<Ranked>(`${RANKED} WHERE e.lang = 'en' AND e.key = ?`, [target, base]);
+    const ids = rank(base, rows);
+    if (ids.length > 0) {
+      return ids.slice(0, limit);
+    }
+  }
+  return [];
+}
+
 async function result(db: SqlReader, id: number, target: Lang): Promise<Result> {
   const [entry] = await db.all<{ headword: string; pos: string | null }>(
     "SELECT headword, pos FROM entries WHERE id = ?",
@@ -171,6 +183,9 @@ export async function lookup(
   let ids = await entryIds(db, query, key, [lang, target], prefix, limit);
   if (ids.length === 0 && lang === "tr" && !prefix) {
     ids = await stemmedIds(db, query, target, limit);
+  }
+  if (ids.length === 0 && lang === "en" && !prefix) {
+    ids = await adverbIds(db, query, target, limit);
   }
   return Promise.all(ids.map((id) => result(db, id, target)));
 }

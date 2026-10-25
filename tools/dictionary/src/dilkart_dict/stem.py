@@ -3,7 +3,7 @@
 import re
 from collections.abc import Iterator
 
-__all__ = ["turkish_stems"]
+__all__ = ["english_adverb_bases", "turkish_stems"]
 
 _MIN_STEM = 2
 # Final consonant softening before a vowel suffix: kitap → kitabı, git → gidiyor, ağaç → ağacı.
@@ -48,3 +48,25 @@ def turkish_stems(word: str) -> Iterator[list[str]]:
         stem = word[:n]
         bases = [stem] + ([stem[:-1] + _HARDENED[stem[-1]]] if stem[-1] in _HARDENED else [])
         yield bases + [b + i for b in bases for i in _INFINITIVES]
+
+
+_VOWELS = "aeiou"
+_MIN_ADVERB = 5
+
+
+def english_adverb_bases(word: str) -> list[str]:
+    """Adjective candidates for an -ly adverb, most specific first: gently → gentle, gent."""
+    if not word.endswith("ly") or len(word) < _MIN_ADVERB:
+        return []
+
+    bases = []
+    if word.endswith("ically"):
+        bases.append(word[:-4])  # basically → basic
+    if word.endswith("ily"):
+        bases.append(word[:-3] + "y")  # happily → happy
+    if word.endswith("lly"):
+        bases.append(word[:-1])  # fully → full
+    elif word[-3] not in _VOWELS:
+        bases.append(word[:-1] + "e")  # gently → gentle
+    bases.append(word[:-2])  # quickly → quick
+    return list(dict.fromkeys(bases))

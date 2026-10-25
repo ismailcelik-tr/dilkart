@@ -79,4 +79,17 @@ describe("lookup", () => {
   it("returns nothing for empty queries", async () => {
     expect(await lookup(db, "  ", Direction.EnTr)).toEqual([]);
   });
+
+  it("orders homographs by English Wiktionary page order", async () => {
+    expect((await lookup(db, "go", Direction.EnTr)).map((r) => r.pos)).toEqual(["verb", "noun"]);
+  });
+
+  it("fills English definitions for words missing from WordNet", async () => {
+    const [the] = await lookup(db, "the", Direction.EnEn);
+    expect(the?.senses.map((s) => s.gloss)).toEqual([
+      "Definite grammatical article",
+      "Used before a noun",
+      "Used before a superlative",
+    ]);
+  });
 });
