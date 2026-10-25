@@ -2,6 +2,7 @@
 // reaches the outbox (ADR 0009).
 import { validate, type CardDraft, type CardError } from "../card/card";
 import type { SqlReader } from "../dictionary/lookup";
+import type { FsrsState } from "../fsrs/scheduler";
 import { uuidv7 } from "../sync/id";
 import { Table, type Edit, type LocalStore } from "../sync/localStore";
 import type { Values } from "../sync/merge";
@@ -20,6 +21,8 @@ export interface Card extends CardDraft {
   id: string;
   deckId: string;
   isWeak: boolean;
+  /** Undefined while the card is new. */
+  fsrs?: FsrsState;
 }
 
 export type Saved<E> = { ok: true; id: string } | { ok: false; errors: E[] };
@@ -56,6 +59,7 @@ function toCard(v: Values): Card {
     dictEntryId: optional(v.dict_entry_id),
     dictSenseId: optional(v.dict_sense_id),
     isWeak: v.is_weak === true,
+    fsrs: (v.fsrs_state ?? undefined) as FsrsState | undefined,
   };
 }
 
@@ -113,6 +117,11 @@ export class Library {
 
   async cards(deckId: string): Promise<Card[]> {
     const rows = await this.store.select(Table.Cards, `deck_id = ? AND ${LIVE}`, [deckId]);
+    return rows.map(toCard).sort((a, b) => byText(a.front, b.front));
+  }
+
+  async allCards(): Promise<Card[]> {
+    const rows = await this.store.select(Table.Cards, LIVE, []);
     return rows.map(toCard).sort((a, b) => byText(a.front, b.front));
   }
 

@@ -1,0 +1,147 @@
+// What to study now and how answers are recorded; docs/plan.md section 16, items 5 and Aşama 5.
+import type { Card, Library } from "../data/library";
+import type { SqlReader } from "../dictionary/lookup";
+import { dayKey, dayStart } from "../fsrs/day";
+import { schedules, type Module, type SessionKind } from "../fsrs/policy";
+import { CardState, DEFAULT_RETENTION, Rating, Scheduler, type FsrsState, type Review } from "../fsrs/scheduler";
+import { uuidv7 } from "../sync/id";
+import { Table, type LocalStore } from "../sync/localStore";
+
+export interface StudySettings {
+  newPerDay: number;
+  reviewsPerDay: number;
+  dayStartHour: number;
+  desiredRetention: number;
+}
+
+export const DEFAULT_SETTINGS: StudySettings = {
+  newPerDay: 20,
+  reviewsPerDay: 200,
+  dayStartHour: 4,
+  desiredRetention: DEFAULT_RETENTION,
+};
+
+export interface StudyContext {
+  session: SessionKind;
+  module: Module;
+}
+
+export interface Plan {
+  cards: Card[];
+  counts: { learning: number; review: number; new: number };
+}
+
+// One new card after every this many reviews.
+const NEW_EVERY = 5;
+const RATINGS = [Rating.Again, Rating.Hard, Rating.Good, Rating.Easy];
+
+const isLearning = (s: FsrsState) => s.state === CardState.Learning || s.state === CardState.Relearning;
+const byDue = (a: Card, b: Card) => (a.fsrs?.due ?? "").localeCompare(b.fsrs?.due ?? "");
+const byCreation = (a: Card, b: Card) => a.id.localeCompare(b.id);
+
+/** Device minutes east of UTC, the review_logs.tz_offset_min convention. */
+const deviceOffset = () => -new Date().getTimezoneOffset();
+
+export class Study {
+  private readonly scheduler: Scheduler;
+
+  constructor(
+    private readonly store: LocalStore,
+    private readonly library: Library,
+    private readonly reader: SqlReader,
+    private readonly settings: StudySettings = DEFAULT_SETTINGS,
+    private readonly now: () => number = Date.now,
+    private readonly tzOffsetMin: () => number = deviceOffset,
+  ) {
+    this.scheduler = new Scheduler(settings.desiredRetention);
+  }
+
+  /** Due learning steps, then reviews (most overdue first) with new cards spread among them. */
+  async plan(deckId?: string): Promise<Plan> {
+    const cards = deckId === undefined ? await this.library.allCards() : await this.library.cards(deckId);
+    const today = dayKey(new Date(this.now()), this.settings.dayStartHour, this.tzOffsetMin());
+    const endOfDay = dayStart(today + 1, this.settings.dayStartHour, this.tzOffsetMin()).toISOString();
+    const done = await this.doneToday(dayStart(today, this.settings.dayStartHour, this.tzOffsetMin()).toISOString());
+
+    const learning = cards.filter((c) => c.fsrs && isLearning(c.fsrs) && c.fsrs.due < endOfDay).sort(byDue);
+    const reviews = cards
+      .filter((c) => c.fsrs?.state === CardState.Review && c.fsrs.due < endOfDay)
+      .sort(byDue)
+      .slice(0, Math.max(0, this.settings.reviewsPerDay - done.reviews));
+    const fresh = cards
+      .filter((c) => c.fsrs === undefined)
+      .sort(byCreation)
+      .slice(0, Math.max(0, this.settings.newPerDay - done.new));
+
+    const mixed: Card[] = [];
+    let n = 0;
+    for (const [i, card] of reviews.entries()) {
+      mixed.push(card);
+      if ((i + 1) % NEW_EVERY === 0 && n < fresh.length) {
+        mixed.push(fresh[n++] as Card);
+      }
+    }
+    mixed.push(...fresh.slice(n));
+
+    return {
+      cards: [...learning, ...mixed],
+      counts: { learning: learning.length, review: reviews.length, new: fresh.length },
+    };
+  }
+
+  /** Records an answer; updates the schedule only when policy says it counts. */
+  async answer(card: Card, rating: Rating, ctx: StudyContext, elapsedMs: number): Promise<Card> {
+    const at = new Date(this.now()).toISOString();
+    const tzOffsetMin = this.tzOffsetMin();
+    const scheduled = schedules(card.fsrs, at, { ...ctx, dayStartHour: this.settings.dayStartHour, tzOffsetMin });
+
+    await this.store.append(uuidv7(this.now()), {
+      card_id: card.id,
+      reviewed_at: at,
+      rating,
+      mode: ctx.module,
+      tz_offset_min: tzOffsetMin,
+      elapsed_ms: Math.round(elapsedMs),
+      scheduled,
+    });
+    if (!scheduled) {
+      return card;
+    }
+
+    const fsrs = this.scheduler.rate(card.fsrs, rating, at);
+    await this.store.cacheFsrs(card.id, fsrs);
+    return { ...card, fsrs };
+  }
+
+  /** Milliseconds until the card would be due after each rating. */
+  intervals(card: Card): Record<Rating, number> {
+    const at = new Date(this.now()).toISOString();
+    const entries = RATINGS.map((r) => [r, Date.parse(this.scheduler.rate(card.fsrs, r, at).due) - this.now()]);
+    return Object.fromEntries(entries) as Record<Rating, number>;
+  }
+
+  /** Rebuilds cached states from logs, e.g. after sync pulled another device's reviews. */
+  async refresh(cardIds: string[]): Promise<void> {
+    for (const id of cardIds) {
+      const logs = await this.store.select(Table.ReviewLogs, "card_id = ?", [id]);
+      const reviews: Review[] = logs.map((l) => ({
+        id: String(l.id),
+        reviewedAt: String(l.reviewed_at),
+        rating: Number(l.rating),
+        scheduled: l.scheduled !== false,
+      }));
+      await this.store.cacheFsrs(id, this.scheduler.replay(reviews) ?? null);
+    }
+  }
+
+  /** New cards introduced and review cards answered since `since`, across all decks. */
+  private async doneToday(since: string): Promise<{ new: number; reviews: number }> {
+    const rows = await this.reader.all<{ card_id: string; first: string }>(
+      `SELECT card_id, min(reviewed_at) AS first FROM ${Table.ReviewLogs}
+       WHERE coalesce(scheduled, 1) = 1 GROUP BY card_id HAVING max(reviewed_at) >= ?`,
+      [since],
+    );
+    const fresh = rows.filter((r) => r.first >= since).length;
+    return { new: fresh, reviews: rows.length - fresh };
+  }
+}

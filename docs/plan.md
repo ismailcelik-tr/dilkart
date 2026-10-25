@@ -514,6 +514,7 @@ PoC'lerden aşamalara eklenenler (aynı gün onaylandı):
 - **Aşama 5:** varsayılan limit 20 yeni / 200 tekrar; yeni kartlar tekrarların arasına
   dağıtılır; eşleştirme turu 6 çift (en az 4 kart); modül oturum başında seçilir (son seçim
   hatırlanır). `cards.fsrs_state` senkronize edilmez: cihazda loglardan türetilen önbellek.
+  Öğrenme adımları (dakikalık) oturumda erken cevaplanırsa zamanlamaya sayılır (karar 5'e ek).
 - **Aşama 6:** sözlük eksikleri (`-ly` zarfları, `go` tür sırası, EN→EN
   işlev kelimeleri — önce boyut etkisi ölçülür).
 - **Aşama 7:** kalıcı hata veren tek işlem `outbox_failed`'a taşınır, kuyruk

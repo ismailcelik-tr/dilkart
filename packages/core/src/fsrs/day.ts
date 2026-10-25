@@ -10,3 +10,8 @@ export function dayKey(at: Date | string, dayStartHour: number, tzOffsetMin: num
   const local = new Date(at).getTime() + tzOffsetMin * MS_PER_MINUTE - dayStartHour * MS_PER_HOUR;
   return Math.floor(local / MS_PER_DAY);
 }
+
+/** First instant of study day `key`. */
+export function dayStart(key: number, dayStartHour: number, tzOffsetMin: number): Date {
+  return new Date(key * MS_PER_DAY + dayStartHour * MS_PER_HOUR - tzOffsetMin * MS_PER_MINUTE);
+}

@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import { Verdict } from "../text/answer";
-import { gradeFor, Module, schedules, Session, type StudyContext } from "./policy";
+import { gradeFor, Module, schedules, SessionKind, type ScheduleContext } from "./policy";
 import { Rating, Scheduler } from "./scheduler";
 
-const REVIEW: StudyContext = { session: Session.Review, module: Module.Recall, dayStartHour: 4, tzOffsetMin: 180 };
+const REVIEW: ScheduleContext = { session: SessionKind.Review, module: Module.Recall, dayStartHour: 4, tzOffsetMin: 180 };
 const scheduler = new Scheduler();
 
 // Learned at 10:00 Istanbul; next due several days later.
@@ -32,10 +32,15 @@ describe("schedules", () => {
     expect(schedules(learned, "2026-10-27T01:00:00Z", REVIEW)).toBe(true); // 04:00 local
   });
 
+  it("counts a learning step answered early", () => {
+    const step = scheduler.rate(undefined, Rating.Again, "2026-10-25T07:00:00Z"); // due in 1 min
+    expect(schedules(step, "2026-10-25T07:00:30Z", REVIEW)).toBe(true);
+  });
+
   it("never counts the match module or practice sessions", () => {
     expect(schedules(undefined, "2026-10-25T07:00:00Z", { ...REVIEW, module: Module.Match })).toBe(false);
-    expect(schedules(learned, learned.due, { ...REVIEW, session: Session.Free })).toBe(false);
-    expect(schedules(learned, learned.due, { ...REVIEW, session: Session.Weak })).toBe(false);
+    expect(schedules(learned, learned.due, { ...REVIEW, session: SessionKind.Free })).toBe(false);
+    expect(schedules(learned, learned.due, { ...REVIEW, session: SessionKind.Weak })).toBe(false);
   });
 });
 
