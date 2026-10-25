@@ -1,7 +1,7 @@
 // Decks and cards on the device. Writes go through LocalStore so every change
 // reaches the outbox (ADR 0009).
 import { validate, type CardDraft, type CardError } from "../card/card";
-import type { SqlReader } from "../dictionary/lookup";
+import { Direction, type Result, type SqlReader } from "../dictionary/lookup";
 import type { FsrsState } from "../fsrs/scheduler";
 import { uuidv7 } from "../sync/id";
 import { Table, type Edit, type LocalStore } from "../sync/localStore";
@@ -26,6 +26,9 @@ export interface Card extends CardDraft {
 }
 
 export type Saved<E> = { ok: true; id: string } | { ok: false; errors: E[] };
+
+/** A dictionary sense becomes at most one live card. */
+export type Added = { ok: true; id: string } | { ok: false; duplicateOf: Card };
 
 const LOCALE = "tr";
 const LIVE = "deleted_at IS NULL";
@@ -161,6 +164,34 @@ export class Library {
       await this.store.write(Table.Cards, id, changes);
     }
     return { ok: true, id };
+  }
+
+  /** Card for one sense; the English side is always the front. */
+  async addFromDictionary(deckId: string, result: Result, senseId: number, direction: Direction): Promise<Added> {
+    const sense = result.senses.find((s) => s.id === senseId);
+    if (sense === undefined) {
+      throw new Error(`sense ${senseId} not in entry ${result.id}`);
+    }
+
+    const [existing] = await this.store.select(Table.Cards, `dict_sense_id = ? AND ${LIVE}`, [String(senseId)]);
+    if (existing !== undefined) {
+      return { ok: false, duplicateOf: toCard(existing) };
+    }
+
+    const turkishHeadword = direction === Direction.TrEn;
+    const [example] = result.examples;
+    const saved = await this.createCard(deckId, {
+      front: turkishHeadword ? sense.gloss : result.headword,
+      meanings: [{ tr: turkishHeadword ? result.headword : sense.gloss, ...(result.pos ? { pos: result.pos } : {}) }],
+      exampleEn: example?.en,
+      exampleTr: example?.tr ?? undefined,
+      dictEntryId: String(result.id),
+      dictSenseId: String(senseId),
+    });
+    if (!saved.ok) {
+      throw new Error(`dictionary sense ${senseId} made an invalid card`);
+    }
+    return saved;
   }
 
   async moveCard(id: string, deckId: string): Promise<void> {

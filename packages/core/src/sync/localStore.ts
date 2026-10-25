@@ -111,6 +111,10 @@ const MIGRATIONS = [
    CREATE TABLE sync_state (key TEXT PRIMARY KEY, value TEXT NOT NULL);`,
   `CREATE INDEX IF NOT EXISTS cards_deck ON cards (deck_id);
    CREATE INDEX IF NOT EXISTS review_logs_card ON review_logs (card_id);`,
+  // Device-only (plan section 16, item 10); never synced.
+  `CREATE TABLE recent_searches (direction TEXT NOT NULL, key TEXT NOT NULL, query TEXT NOT NULL,
+     searched_at TEXT NOT NULL, PRIMARY KEY (direction, key));
+   CREATE INDEX cards_dict_sense ON cards (dict_sense_id);`,
 ];
 
 export const LOCAL_SCHEMA_VERSION = MIGRATIONS.length;
