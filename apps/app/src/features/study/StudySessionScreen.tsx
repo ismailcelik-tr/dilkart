@@ -1,6 +1,6 @@
 import { checkAnswer, gradeFor, Module, Session, SessionKind, type Card, type Rating, type Verdict } from "@dilkart/core";
 import { router } from "expo-router";
-import { useEffect, useReducer, useState } from "react";
+import { useEffect, useState } from "react";
 import { StyleSheet, Text, TextInput, View } from "react-native";
 
 import { useLibrary, useStudy } from "@/services/library";
@@ -26,12 +26,16 @@ function shuffle<T>(items: T[]): T[] {
 
 const meaningsOf = (c: Card) => c.meanings.map((m) => m.tr).join(", ");
 
+type SessionView = { session: Session; card: Card | undefined; done: number; left: number };
+
+const snapshot = (session: Session): SessionView => ({ session, card: session.current(), ...session.progress() });
+
 export function StudySessionScreen(props: { deckId?: string; module: Module; kind: SessionKind }) {
   const { deckId, module, kind } = props;
   const study = useStudy();
   const lib = useLibrary();
-  const [session, setSession] = useState<Session>();
-  const [, rerender] = useReducer((n: number) => n + 1, 0);
+  // Session mutates in place; React Compiler memoizes by reference, so render from a fresh snapshot.
+  const [view, setView] = useState<SessionView>();
 
   useEffect(() => {
     (async () => {
@@ -39,16 +43,15 @@ export function StudySessionScreen(props: { deckId?: string; module: Module; kin
         kind === SessionKind.Review
           ? (await study.plan(deckId)).cards
           : shuffle(deckId === undefined ? await lib.allCards() : await lib.cards(deckId));
-      setSession(new Session(cards, study, { session: kind, module }));
+      setView(snapshot(new Session(cards, study, { session: kind, module })));
     })();
   }, [study, lib, deckId, module, kind]);
 
-  if (session === undefined) {
+  if (view === undefined) {
     return null;
   }
 
-  const card = session.current();
-  const { done, left } = session.progress();
+  const { session, card, done, left } = view;
   if (card === undefined) {
     return (
       <Screen>
@@ -61,7 +64,7 @@ export function StudySessionScreen(props: { deckId?: string; module: Module; kin
 
   const rate = async (rating: Rating) => {
     await session.answer(rating);
-    rerender();
+    setView(snapshot(session));
   };
   const key = `${card.id}:${done}`;
 

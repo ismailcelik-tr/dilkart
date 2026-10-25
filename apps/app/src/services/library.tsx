@@ -198,10 +198,11 @@ export function useAccount(): Account {
   return account;
 }
 
-/** Reloads on every focus so a list shows edits made on the screen above it. */
-export function useLoad<T>(load: (library: Library) => Promise<T>): T | undefined {
+/** Reloads on every focus so a list shows edits made on the screen above it; `reload` for edits made here. */
+export function useLoad<T>(load: (library: Library) => Promise<T>): [T | undefined, () => void] {
   const library = useLibrary();
   const [value, setValue] = useState<T>();
+  const reload = () => void load(library).then(setValue);
 
   useFocusEffect(
     useCallback(() => {
@@ -216,5 +217,5 @@ export function useLoad<T>(load: (library: Library) => Promise<T>): T | undefine
       };
     }, [library, load]),
   );
-  return value;
+  return [value, reload];
 }

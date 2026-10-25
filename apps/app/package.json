@@ -54,17 +54,5 @@
     "test": "jest",
     "dictionary": "node scripts/fetch-dictionary.mjs"
   },
-  "private": true,
-  "jest": {
-    "preset": "jest-expo",
-    "roots": [
-      "<rootDir>/test"
-    ],
-    "moduleNameMapper": {
-      "^@/(.*)$": "<rootDir>/src/$1"
-    },
-    "setupFilesAfterEnv": [
-      "<rootDir>/test/setup.ts"
-    ]
-  }
+  "private": true
 }

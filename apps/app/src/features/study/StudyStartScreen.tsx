@@ -18,7 +18,7 @@ export function StudyStartScreen({ deckId }: { deckId?: string }) {
   const speech = useSpeech();
   const [picked, setPicked] = useState<Module>();
 
-  const data = useLoad(
+  const [data] = useLoad(
     useCallback(
       async (lib) => ({
         plan: await study.plan(deckId),

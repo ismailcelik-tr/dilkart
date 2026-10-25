@@ -9,7 +9,7 @@ import { goBack } from "@/ui/navigation";
 
 export function DeckScreen({ deckId }: { deckId: string }) {
   const lib = useLibrary();
-  const data = useLoad(
+  const [data] = useLoad(
     useCallback(
       async (l) => ({ deck: (await l.decks()).find((d) => d.id === deckId), cards: await l.cards(deckId) }),
       [deckId],

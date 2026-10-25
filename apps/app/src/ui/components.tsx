@@ -1,7 +1,9 @@
 import type { ReactElement, ReactNode } from "react";
 import { useIsFocused } from "expo-router";
+import { useHeaderHeight } from "expo-router/react-navigation";
 import ReanimatedSwipeable from "react-native-gesture-handler/ReanimatedSwipeable";
 import { FlatList, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { RADIUS, SPACE, useTheme } from "./theme";
 
@@ -10,12 +12,20 @@ export function Screen({ children, typing = false }: { children: ReactNode; typi
   const theme = useTheme();
   // Only the screen in front reacts: screens behind a sheet would otherwise shift when it closes.
   const focused = useIsFocused();
+  const header = useHeaderHeight();
+  const { bottom } = useSafeAreaInsets();
+  // Keyboard scrolls clamp at -contentInset.top and ignore the automatic inset, so with the automatic inset
+  // the top slid under the header (iOS 26). Typing screens set the inset themselves.
+  const insets = typing ? { top: header, bottom } : undefined;
   return (
     <ScrollView
       style={{ backgroundColor: theme.background }}
       contentContainerStyle={styles.screen}
       keyboardShouldPersistTaps="handled"
-      contentInsetAdjustmentBehavior="automatic"
+      contentInsetAdjustmentBehavior={typing ? "never" : "automatic"}
+      contentInset={insets}
+      scrollIndicatorInsets={insets}
+      contentOffset={typing ? { x: 0, y: -header } : undefined}
       // iOS; Android resizes the window instead.
       automaticallyAdjustKeyboardInsets={typing && focused}
       keyboardDismissMode={typing ? "interactive" : "none"}

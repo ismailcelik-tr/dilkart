@@ -6,7 +6,7 @@ import { goBack } from "@/ui/navigation";
 
 export function MoveCardScreen({ cardId }: { cardId: string }) {
   const lib = useLibrary();
-  const data = useLoad(
+  const [data] = useLoad(
     useCallback(async (l) => ({ card: await l.card(cardId), decks: await l.decks() }), [cardId]),
   );
   if (data === undefined) {

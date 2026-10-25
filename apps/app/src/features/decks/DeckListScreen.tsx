@@ -1,5 +1,5 @@
 import { router } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback } from "react";
 
 import { useLibrary, useLoad } from "@/services/library";
 import { Button, ButtonKind, Empty, Group, Row, Screen, SwipeToDelete } from "@/ui/components";
@@ -8,9 +8,7 @@ import { confirmRemoveDeck } from "./removeDeck";
 
 export function DeckListScreen() {
   const lib = useLibrary();
-  // Bumped after a delete; focus alone would not reload the list.
-  const [version, setVersion] = useState(0);
-  const decks = useLoad(useCallback((l) => l.decks(), [version])); // eslint-disable-line react-hooks/exhaustive-deps
+  const [decks, reload] = useLoad(useCallback((l) => l.decks(), []));
   if (decks === undefined) {
     return null;
   }
@@ -29,7 +27,7 @@ export function DeckListScreen() {
               <SwipeToDelete
                 key={d.id}
                 label={`Sil: ${d.name}`}
-                onDelete={() => confirmRemoveDeck(lib, d, d.cardCount, () => setVersion((v) => v + 1))}
+                onDelete={() => confirmRemoveDeck(lib, d, d.cardCount, reload)}
               >
                 <Row title={d.name} subtitle={`${d.cardCount} kart`} onPress={() => router.push(`/deck/${d.id}`)} />
               </SwipeToDelete>
