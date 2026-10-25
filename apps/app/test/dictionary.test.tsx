@@ -87,9 +87,11 @@ describe("dictionary panel", () => {
   });
 });
 
-describe("licences", () => {
-  it("lists every source of the pack", async () => {
-    await renderRouter(APP, { initialUrl: "/about/licenses" });
+describe("about", () => {
+  it("opens from the deck list and lists every source of the pack", async () => {
+    await renderRouter(APP, { initialUrl: "/" });
+    await fireEvent.press(await screen.findByText("Hakkında"));
+    expect(await screen.findByText(/^DilKart/)).toBeOnTheScreen();
     for (const name of ["Vikisözlük", "English Wiktionary", "Open English WordNet", "Tatoeba"]) {
       expect(await screen.findByText(name)).toBeOnTheScreen();
     }

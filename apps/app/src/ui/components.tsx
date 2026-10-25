@@ -1,8 +1,9 @@
 import type { ReactElement, ReactNode } from "react";
 import { useIsFocused } from "expo-router";
 import { useHeaderHeight } from "expo-router/react-navigation";
+import { SymbolView, type SFSymbol } from "expo-symbols";
 import ReanimatedSwipeable from "react-native-gesture-handler/ReanimatedSwipeable";
-import { FlatList, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { FlatList, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { RADIUS, SPACE, useTheme } from "./theme";
@@ -82,6 +83,17 @@ export function Row(props: { title: string; subtitle?: string; selected?: boolea
       </View>
       {props.selected && <Text style={[styles.body, { color: theme.tint }]}>✓</Text>}
     </Pressable>
+  );
+}
+
+export function SwitchRow(props: { icon: SFSymbol; title: string; value: boolean; onChange: (on: boolean) => void }) {
+  const theme = useTheme();
+  return (
+    <View style={[styles.row, styles.switchRow, { borderBottomColor: theme.separator }]}>
+      <SymbolView name={props.icon} tintColor={theme.tint} size={22} />
+      <Text style={[styles.body, styles.rowText, { color: theme.text }]}>{props.title}</Text>
+      <Switch accessibilityLabel={props.title} value={props.value} onValueChange={props.onChange} />
+    </View>
   );
 }
 
@@ -194,6 +206,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   rowText: { flex: 1, gap: 2 },
+  switchRow: { gap: 12, borderBottomWidth: 0 },
   body: { fontSize: 17 },
   caption: { fontSize: 13 },
   pressed: { opacity: 0.6 },

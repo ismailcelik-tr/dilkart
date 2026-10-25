@@ -32,6 +32,7 @@ jest.mock("expo-sqlite/kv-store", () => ({
   Storage: {
     getItem: async (k: string) => mockValues.get(k) ?? null,
     setItem: async (k: string, v: string) => void mockValues.set(k, v),
+    getItemSync: (k: string) => mockValues.get(k) ?? null,
   },
 }));
 

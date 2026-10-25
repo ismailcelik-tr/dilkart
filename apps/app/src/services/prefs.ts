@@ -5,6 +5,10 @@ import { Storage } from "expo-sqlite/kv-store";
 const MODULE_KEY = "study.module";
 const DIRECTION_KEY = "dictionary.direction";
 const DECK_KEY = "deck.last";
+const SCHEME_KEY = "appearance.scheme";
+
+/** Unset follows the system. */
+export type Scheme = "light" | "dark";
 
 export async function lastModule(): Promise<Module | undefined> {
   const value = await Storage.getItem(MODULE_KEY);
@@ -30,4 +34,14 @@ export async function lastDeck(): Promise<string | undefined> {
 
 export async function rememberDeck(deckId: string): Promise<void> {
   await Storage.setItem(DECK_KEY, deckId);
+}
+
+/** Sync: read before the first frame, so the app never flashes the system scheme. */
+export function savedScheme(): Scheme | undefined {
+  const value = Storage.getItemSync(SCHEME_KEY);
+  return value === "light" || value === "dark" ? value : undefined;
+}
+
+export async function rememberScheme(scheme: Scheme): Promise<void> {
+  await Storage.setItem(SCHEME_KEY, scheme);
 }

@@ -7,14 +7,20 @@ import {
   Stack,
   ThemeProvider,
 } from "expo-router";
-import { Pressable, Text, useColorScheme } from "react-native";
+import { Appearance, Pressable, Text, useColorScheme } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import { LibraryProvider } from "@/services/library";
+import { savedScheme } from "@/services/prefs";
 import { useTheme } from "@/ui/theme";
 
 // Deep links open above the deck list, so back always has somewhere to go.
 export const unstable_settings = { anchor: "index" };
+
+const saved = savedScheme();
+if (saved !== undefined) {
+  Appearance.setColorScheme(saved);
+}
 
 export default function RootLayout() {
   // Without it the native header stays light in dark mode: black titles on a dark bar.
@@ -32,26 +38,20 @@ export default function RootLayout() {
             })}
           >
             <Stack.Screen name="index" options={{ title: "Destelerim" }} />
-            <Stack.Screen
-              name="deck/new"
-              options={{ title: "Yeni deste", presentation: "modal" }}
-            />
+            <Stack.Screen name="deck/new" options={{ title: "Yeni deste" }} />
             <Stack.Screen name="deck/[id]/index" options={{ title: "" }} />
             <Stack.Screen
               name="deck/[id]/rename"
-              options={{ title: "Yeniden adlandır", presentation: "modal" }}
+              options={{ title: "Yeniden adlandır" }}
             />
-            <Stack.Screen
-              name="card/new"
-              options={{ title: "Yeni kart", presentation: "modal" }}
-            />
+            <Stack.Screen name="card/new" options={{ title: "Yeni kart" }} />
             <Stack.Screen
               name="card/[id]/index"
               options={{ title: "Kartı düzenle" }}
             />
             <Stack.Screen
               name="card/[id]/move"
-              options={{ title: "Desteye taşı", presentation: "modal" }}
+              options={{ title: "Desteye taşı" }}
             />
             <Stack.Screen name="study/index" options={{ title: "Çalış" }} />
             <Stack.Screen name="study/session" options={{ title: "Çalışma" }} />
@@ -68,10 +68,7 @@ export default function RootLayout() {
                 sheetGrabberVisible: true,
               }}
             />
-            <Stack.Screen
-              name="about/licenses"
-              options={{ title: "Lisanslar ve kaynaklar" }}
-            />
+            <Stack.Screen name="about/index" options={{ title: "Hakkında" }} />
             <Stack.Screen name="account/index" options={{ title: "Hesap" }} />
             <Stack.Screen
               name="account/sign-up"
@@ -95,7 +92,7 @@ export default function RootLayout() {
             />
             <Stack.Screen
               name="account/adopt"
-              options={{ title: "Bu cihazdaki kartlar", presentation: "modal" }}
+              options={{ title: "Bu cihazdaki kartlar" }}
             />
           </Stack>
         </LibraryProvider>

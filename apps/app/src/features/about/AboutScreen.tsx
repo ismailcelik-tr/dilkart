@@ -1,3 +1,4 @@
+import Constants from "expo-constants";
 import { useEffect, useState } from "react";
 import { Linking, Text } from "react-native";
 
@@ -13,7 +14,7 @@ interface Source {
 }
 
 /** CC BY-SA and CC BY require crediting every source of the bundled pack. */
-export function LicensesScreen() {
+export function AboutScreen() {
   const { dictionary } = useDictionary();
   const theme = useTheme();
   const [sources, setSources] = useState<Source[]>();
@@ -36,6 +37,7 @@ export function LicensesScreen() {
   }
   return (
     <Screen>
+      <Empty text={`DilKart ${Constants.expoConfig?.version ?? ""}`} />
       <Text style={{ color: theme.text }}>
         Sözlük paketi (sürüm {version}) CC BY-SA 4.0 lisanslıdır ve aşağıdaki kaynaklardan derlenmiştir.
         Uygulamanın kaynak kodu MIT lisanslıdır.

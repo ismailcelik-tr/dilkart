@@ -1,7 +1,8 @@
 import { fireEvent, renderRouter, screen } from "expo-router/testing-library";
-import { Alert, type AlertButton } from "react-native";
+import { Alert, Appearance, type AlertButton } from "react-native";
 
 import { openData } from "@/services/openData";
+import { savedScheme } from "@/services/prefs";
 import type { Library } from "@dilkart/core";
 
 import { testData } from "./testData";
@@ -72,6 +73,15 @@ describe("decks", () => {
 });
 
 describe("deck list", () => {
+  it("switches to dark appearance and remembers it", async () => {
+    const apply = jest.spyOn(Appearance, "setColorScheme");
+    await renderRouter(APP, { initialUrl: "/" });
+    await fireEvent(await screen.findByLabelText("Koyu görünüm"), "valueChange", true);
+
+    expect(apply).toHaveBeenCalledWith("dark");
+    expect(savedScheme()).toBe("dark");
+  });
+
   it("covers the swipe action with an opaque row", async () => {
     await deckWithCard();
     await renderRouter(APP, { initialUrl: "/" });
