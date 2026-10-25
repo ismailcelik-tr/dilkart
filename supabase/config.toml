@@ -423,3 +423,28 @@ enabled = true
 # formatted with uppercase keywords, indent 2, max width 180, trailing commas,
 # and column/key alignment. Set to "null" to emit raw, unformatted SQL.
 # format_options = "{\"keywordCase\":\"upper\",\"indent\":2,\"maxWidth\":180,\"commaStyle\":\"trailing\"}"
+
+# Overrides for the hosted project (`supabase config push`). SMTP is set in the dashboard so the
+# Gmail app password never lands in a file or shell history.
+[remotes.production]
+project_id = "kcpwtkzhflsawtipjzcl"
+
+[remotes.production.auth]
+site_url = "dilkart://"
+additional_redirect_urls = []
+
+[remotes.production.auth.rate_limit]
+email_sent = 30
+sign_in_sign_ups = 30
+
+# Keep hosted defaults the app does not depend on.
+[remotes.production.db.pooler]
+default_pool_size = 15
+max_client_conn = 200
+
+[remotes.production.storage.vector]
+enabled = false
+
+[remotes.production.auth.mfa.totp]
+enroll_enabled = true
+verify_enabled = true
