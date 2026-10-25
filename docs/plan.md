@@ -505,7 +505,10 @@ Karar kapısı 25 Eki 2026'da geçildi (4–11 onaylandı):
 PoC'lerden aşamalara eklenenler (aynı gün onaylandı):
 
 - **Aşama 3:** FSRS durumunun `review_logs`'tan yeniden oynatılması; iki
-  cihazda bit düzeyinde aynı sonuç.
+  cihazda bit düzeyinde aynı sonuç. Ayrıca: yazma modunda yalnız aksan farkı
+  doğru sayılır (doğru yazım gösterilir); zayıf kural için "hata" = Again;
+  istatistikler: günlük tekrar (30 gün), hatırlama oranı (7/30 gün), seri,
+  kart durumları + 7 günlük vade tahmini.
 - **Aşama 6:** sözlük eksikleri (`-ly` zarfları, `go` tür sırası, EN→EN
   işlev kelimeleri — önce boyut etkisi ölçülür).
 - **Aşama 7:** kalıcı hata veren tek işlem `outbox_failed`'a taşınır, kuyruk

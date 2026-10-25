@@ -1,0 +1,15 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Scheduler > pins FSRS-6 outputs so a library upgrade cannot shift schedules silently 1`] = `
+{
+  "difficulty": 6.48683024,
+  "due": "2026-11-16T06:00:00.000Z",
+  "lapses": 1,
+  "lastReview": "2026-11-08T06:00:00.000Z",
+  "learningSteps": 0,
+  "reps": 6,
+  "scheduledDays": 8,
+  "stability": 8.03982792,
+  "state": 2,
+}
+`;

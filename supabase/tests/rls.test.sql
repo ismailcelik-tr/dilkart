@@ -68,7 +68,8 @@ select throws_ok($$
 $$, '42501', null, 'anon cannot insert');
 
 reset role;
-select is((select front from public.cards), 'go', 'B could not update A''s card');
+select is((select front from public.cards where id = '00000000-0000-0000-0000-0000000000c1'), 'go',
+  'B could not update A''s card');
 
 select * from finish();
 rollback;

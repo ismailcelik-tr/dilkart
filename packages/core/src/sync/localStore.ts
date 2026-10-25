@@ -73,6 +73,7 @@ const COLUMNS: Record<Table, Record<string, Kind>> = {
     mode: Kind.Int,
     tz_offset_min: Kind.Int,
     elapsed_ms: Kind.Int,
+    scheduled: Kind.Bool,
   },
   [Table.Settings]: {
     daily_new_limit: Kind.Int,

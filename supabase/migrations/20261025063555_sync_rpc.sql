@@ -119,12 +119,22 @@ end $$;
 
 -- Insert-only and keyed by id, so replays need no applied_ops entry.
 create function sync.apply_log(uid uuid, op jsonb) returns void
-language sql set search_path = '' as $$
-  insert into public.review_logs
-  select * from jsonb_populate_record(
-    null::public.review_logs, (op->'values') || jsonb_build_object('id', op->>'row_id', 'user_id', uid))
-  on conflict (id) do nothing;
-$$;
+language plpgsql set search_path = '' as $$
+declare
+  next_row jsonb := (op->'values') || jsonb_build_object('id', op->>'row_id', 'user_id', uid);
+  cols text;
+begin
+  -- Only present columns, so omitted ones get column defaults.
+  select string_agg(format('%I', attname), ', ') into cols
+  from pg_attribute
+  where attrelid = 'public.review_logs'::regclass and attnum > 0 and not attisdropped
+    and next_row ? attname::text and attname <> 'server_seq';
+
+  execute format(
+    'insert into public.review_logs (%1$s) select %1$s from jsonb_populate_record(null::public.review_logs, $1) '
+    'on conflict (id) do nothing', cols)
+    using next_row;
+end $$;
 
 create function public.sync_push(ops jsonb, schema_version integer) returns integer
 language plpgsql security invoker set search_path = '' as $$

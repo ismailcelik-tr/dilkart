@@ -72,6 +72,11 @@ describe("LocalStore outbox", () => {
     expect(await store.read(Table.ReviewLogs, LOG)).toMatchObject({ rating: 3 });
     expect((await ops())[0]).toMatchObject({ table: Table.ReviewLogs, row_id: LOG, base: {} });
   });
+
+  it("stores whether a review counts for scheduling", async () => {
+    await store.append(LOG, { card_id: CARD, reviewed_at: "2026-10-25T06:00:00Z", rating: 3, mode: 5, tz_offset_min: 180, elapsed_ms: 900, scheduled: false });
+    expect(await store.read(Table.ReviewLogs, LOG)).toMatchObject({ scheduled: false });
+  });
 });
 
 describe("LocalStore.applyRemote", () => {

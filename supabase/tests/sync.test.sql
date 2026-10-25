@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(22);
+select plan(23);
 
 -- lww_merge(cur, clock, incoming, base, hlc)
 select is(
@@ -73,6 +73,7 @@ select is((select field_clock->>'front' from public.cards), '000000000000001-000
 select public.sync_push((select ops from batch), 1) from generate_series(1, 4);
 select is((select count(*) from public.cards)::int, 1, 'replayed batch keeps one card');
 select is((select count(*) from public.review_logs)::int, 1, 'replayed batch keeps one review log');
+select is((select scheduled from public.review_logs), true, 'review logs count for scheduling by default');
 select is((select field_clock->>'front' from public.cards), '000000000000001-0001-a', 'replay does not touch clocks');
 
 select throws_ok($$ select public.sync_push('[]', 0) $$, 'DK001', null, 'old schema version is rejected');
