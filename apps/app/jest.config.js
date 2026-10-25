@@ -10,6 +10,8 @@ module.exports = {
     ...expo.transform,
     [SOURCE]: [babelJest, { ...babelOptions, caller: { ...babelOptions.caller, supportsReactCompiler: true } }],
   },
+  // A cold React Compiler transform made each file's first render exceed 5 s on CI.
+  testTimeout: 20_000,
   roots: ["<rootDir>/test"],
   moduleNameMapper: { "^@/(.*)$": "<rootDir>/src/$1" },
   setupFilesAfterEnv: ["<rootDir>/test/setup.ts"],
