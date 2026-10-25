@@ -21,9 +21,6 @@ const graduated = () => [review(60 * DAY, Rating.Good), review(60 * DAY - 10 * M
 /** A lapse `daysAgo` and its relearning step. */
 const lapse = (daysAgo: number) => [review(daysAgo * DAY, Rating.Again), review(daysAgo * DAY - 10 * MIN, Rating.Good)];
 
-const goods = (n: number, fromDaysAgo: number) =>
-  Array.from({ length: n }, (_, i) => review((fromDaysAgo - i) * DAY, Rating.Good));
-
 const suggest = (reviews: Review[], dismissedUntil?: string) =>
   suggestWeak(reviews, new Date(NOW).toISOString(), { isWeak: false, dismissedUntil });
 
