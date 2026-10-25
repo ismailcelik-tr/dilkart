@@ -22,7 +22,7 @@ export interface Card extends CardDraft {
   isWeak: boolean;
 }
 
-export type Result<E> = { ok: true; id: string } | { ok: false; errors: E[] };
+export type Saved<E> = { ok: true; id: string } | { ok: false; errors: E[] };
 
 const LOCALE = "tr";
 const LIVE = "deleted_at IS NULL";
@@ -79,7 +79,7 @@ export class Library {
       .sort((a, b) => byText(a.name, b.name));
   }
 
-  async createDeck(name: string): Promise<Result<DeckError>> {
+  async createDeck(name: string): Promise<Saved<DeckError>> {
     const clean = name.trim();
     if (clean === "") {
       return { ok: false, errors: [DeckError.EmptyName] };
@@ -90,7 +90,7 @@ export class Library {
     return { ok: true, id };
   }
 
-  async renameDeck(id: string, name: string): Promise<Result<DeckError>> {
+  async renameDeck(id: string, name: string): Promise<Saved<DeckError>> {
     const clean = name.trim();
     if (clean === "") {
       return { ok: false, errors: [DeckError.EmptyName] };
@@ -121,7 +121,7 @@ export class Library {
     return row && toCard(row);
   }
 
-  async createCard(deckId: string, draft: CardDraft): Promise<Result<CardError>> {
+  async createCard(deckId: string, draft: CardDraft): Promise<Saved<CardError>> {
     const result = validate(draft);
     if (!result.ok) {
       return result;
@@ -133,7 +133,7 @@ export class Library {
   }
 
   /** Writes only changed fields, so a concurrent edit of another field survives sync. */
-  async updateCard(id: string, draft: CardDraft): Promise<Result<CardError>> {
+  async updateCard(id: string, draft: CardDraft): Promise<Saved<CardError>> {
     const result = validate(draft);
     if (!result.ok) {
       return result;

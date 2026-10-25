@@ -22,4 +22,4 @@ export type { Check } from "./text/answer";
 export { dismissUntil, suggestWeak } from "./weak/weak";
 export type { WeakStatus } from "./weak/weak";
 export { DeckError, Library } from "./data/library";
-export type { Card, Deck, Result } from "./data/library";
+export type { Card, Deck, Saved } from "./data/library";
