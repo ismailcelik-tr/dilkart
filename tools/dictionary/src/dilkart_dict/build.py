@@ -1,6 +1,7 @@
 """Merge Wiktionary, Vikisözlük, Open English WordNet and Tatoeba into one SQLite pack."""
 
 import hashlib
+import json
 import re
 import sqlite3
 from collections import defaultdict
@@ -8,7 +9,7 @@ from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 
 from dilkart_dict.normalize import search_key
-from dilkart_dict.schema import DDL, INDEXES, SCHEMA_VERSION, Lang, Source
+from dilkart_dict.schema import ATTRIBUTION, DDL, INDEXES, PACK_VERSION, SCHEMA_VERSION, Lang, Source
 
 __all__ = ["Sources", "build"]
 
@@ -311,7 +312,14 @@ class _Builder:
         conn.executemany("INSERT OR IGNORE INTO forms (key, entry_id) VALUES (?, ?)", sorted(f for f in forms if f[0]))
         conn.executescript(INDEXES)
         conn.execute("ANALYZE")
-        conn.executemany("INSERT INTO meta (key, value) VALUES (?, ?)", [("schema_version", SCHEMA_VERSION)])
+        conn.executemany(
+            "INSERT INTO meta (key, value) VALUES (?, ?)",
+            [
+                ("schema_version", SCHEMA_VERSION),
+                ("pack_version", PACK_VERSION),
+                ("attribution", json.dumps(ATTRIBUTION, ensure_ascii=False)),
+            ],
+        )
         conn.commit()
 
 

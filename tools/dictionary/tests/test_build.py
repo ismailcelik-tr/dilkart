@@ -1,3 +1,4 @@
+import json
 import sqlite3
 
 import pytest
@@ -176,3 +177,11 @@ def test_english_definitions_fill_words_missing_from_wordnet(db) -> None:
 def test_wordnet_words_get_no_wiktionary_definitions(db) -> None:
     run = lookup(db, "run", Direction.EN_EN)[0]
     assert {s.gloss for s in run.senses} == {"move fast by using one's feet"}
+
+
+def test_pack_carries_version_and_attribution(db) -> None:
+    meta = dict(db.execute("SELECT key, value FROM meta"))
+    assert meta["pack_version"] == "1"
+    sources = json.loads(meta["attribution"])
+    assert {s["license"] for s in sources} >= {"CC BY-SA 4.0", "CC BY 4.0", "CC BY 2.0 FR"}
+    assert all(s["name"] and s["url"].startswith("https://") for s in sources)

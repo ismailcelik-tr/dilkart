@@ -2,9 +2,21 @@
 
 from enum import StrEnum
 
-__all__ = ["Lang", "Source", "SCHEMA_VERSION", "DDL", "INDEXES"]
+__all__ = ["Lang", "Source", "SCHEMA_VERSION", "PACK_VERSION", "ATTRIBUTION", "DDL", "INDEXES"]
 
 SCHEMA_VERSION = "2"
+# Bump with every published pack; matches the GitHub release tag dictionary-v<N>.
+PACK_VERSION = "1"
+
+# Shown on the app's licence screen; the pack itself is CC BY-SA 4.0.
+ATTRIBUTION = [
+    {"name": "Vikisözlük", "url": "https://tr.wiktionary.org", "license": "CC BY-SA 4.0",
+     "via": "kaikki.org (wiktextract)"},
+    {"name": "English Wiktionary", "url": "https://en.wiktionary.org", "license": "CC BY-SA 4.0",
+     "via": "kaikki.org (wiktextract)"},
+    {"name": "Open English WordNet", "url": "https://en-word.net", "license": "CC BY 4.0", "via": None},
+    {"name": "Tatoeba", "url": "https://tatoeba.org", "license": "CC BY 2.0 FR", "via": None},
+]
 
 
 class Lang(StrEnum):
