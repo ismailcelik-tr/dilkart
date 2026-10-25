@@ -3,7 +3,8 @@ import { useCallback } from "react";
 import { Alert } from "react-native";
 
 import { useLibrary, useLoad } from "@/services/library";
-import { Button, ButtonKind, Empty, Group, Row, Screen } from "@/ui/components";
+import { CardList } from "@/features/cards/CardList";
+import { Button, ButtonKind, Empty } from "@/ui/components";
 import { goBack } from "@/ui/navigation";
 
 export function DeckScreen({ deckId }: { deckId: string }) {
@@ -37,29 +38,23 @@ export function DeckScreen({ deckId }: { deckId: string }) {
     ]);
 
   return (
-    <Screen>
+    <>
       <Stack.Screen options={{ title: deck.name }} />
-      {cards.length === 0 ? (
-        <Empty text="Bu destede kart yok" />
-      ) : (
-        <Group>
-          {cards.map((c) => (
-            <Row
-              key={c.id}
-              title={c.usageLabel ? `${c.front} · ${c.usageLabel}` : c.front}
-              subtitle={c.meanings.map((m) => m.tr).join(", ")}
-              onPress={() => router.push(`/card/${c.id}`)}
+      <CardList
+        cards={cards}
+        empty={<Empty text="Bu destede kart yok" />}
+        footer={
+          <>
+            <Button
+              title="Kart ekle"
+              kind={ButtonKind.Primary}
+              onPress={() => router.push({ pathname: "/card/new", params: { deckId } })}
             />
-          ))}
-        </Group>
-      )}
-      <Button
-        title="Kart ekle"
-        kind={ButtonKind.Primary}
-        onPress={() => router.push({ pathname: "/card/new", params: { deckId } })}
+            <Button title="Yeniden adlandır" onPress={() => router.push(`/deck/${deckId}/rename`)} />
+            <Button title="Desteyi sil" kind={ButtonKind.Danger} onPress={remove} />
+          </>
+        }
       />
-      <Button title="Yeniden adlandır" onPress={() => router.push(`/deck/${deckId}/rename`)} />
-      <Button title="Desteyi sil" kind={ButtonKind.Danger} onPress={remove} />
-    </Screen>
+    </>
   );
 }

@@ -1,5 +1,5 @@
-import type { ReactNode } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import type { ReactElement, ReactNode } from "react";
+import { FlatList, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { RADIUS, SPACE, useTheme } from "./theme";
 
@@ -14,6 +14,31 @@ export function Screen({ children }: { children: ReactNode }) {
     >
       {children}
     </ScrollView>
+  );
+}
+
+/** Virtualized screen: only visible rows render, so long decks open fast. */
+export function ListScreen<T>(props: {
+  data: T[];
+  keyOf: (item: T) => string;
+  render: (item: T) => ReactElement;
+  header?: ReactElement;
+  footer?: ReactElement;
+  onContentSizeChange?: () => void;
+}) {
+  const theme = useTheme();
+  return (
+    <FlatList
+      data={props.data}
+      keyExtractor={props.keyOf}
+      renderItem={({ item }) => <View style={{ backgroundColor: theme.surface }}>{props.render(item)}</View>}
+      ListHeaderComponent={props.header}
+      ListFooterComponent={props.footer && <View style={styles.footer}>{props.footer}</View>}
+      onContentSizeChange={props.onContentSizeChange}
+      style={{ backgroundColor: theme.background }}
+      contentContainerStyle={styles.list}
+      contentInsetAdjustmentBehavior="automatic"
+    />
   );
 }
 
@@ -87,6 +112,8 @@ export function Empty({ text }: { text: string }) {
 
 const styles = StyleSheet.create({
   screen: { padding: SPACE, gap: SPACE },
+  list: { paddingVertical: SPACE },
+  footer: { padding: SPACE, gap: SPACE },
   group: { borderRadius: RADIUS, overflow: "hidden" },
   row: { paddingHorizontal: SPACE, paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, gap: 2 },
   body: { fontSize: 17 },

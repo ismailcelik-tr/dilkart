@@ -28,6 +28,7 @@ export function DeckListScreen() {
         </>
       )}
       {__DEV__ && <Button title="Sözlük ölçümü" onPress={() => router.push("/dev/dictionary-bench")} />}
+      {__DEV__ && <Button title="Liste ölçümü" onPress={() => router.push("/dev/deck-bench")} />}
     </Screen>
   );
 }

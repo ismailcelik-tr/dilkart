@@ -1,3 +1,5 @@
+import "@/services/polyfills";
+
 import { Stack } from "expo-router";
 
 import { LibraryProvider } from "@/services/library";
