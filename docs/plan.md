@@ -479,22 +479,42 @@ Marka tescili kontrol edilmedi **[V]**.
 2. ~~Expo / Sentry hesabı~~ → Expo: mevcut hesap (`eas login` EAS gerektiğinde);
    Sentry: Aşama 10 öncesi yeni hesap.
 3. ~~Kod lisansı~~ → **MIT**. Sözlük paketi CC BY-SA 4.0.
-4. **PoC sonrası karar kapısı** (Aşama 1–2 bitince).
-5. **Zamanlamayı ne etkiler:** öneri — "tekrar oturumu" seçilen modla (1–4)
-   kartın tek FSRS durumunu günceller (yazma/dinleme: yanlış→Again,
-   neredeyse→Hard, doğru→Good); modül 5 ve serbest çalışma yalnız pratik.
-6. **Web kapsamı:** öneri — MVP'de giriş + deste/kart yönetimi + hesap silme
-   + dışa aktarma; çalışma, sözlük, istatistik sonra.
-7. **Çakışma politikası:** alan bazlı LWW + HLC + çakışma kaydı (bölüm 7).
-8. **Zayıf kelime öneri eşiği:** öneri — son 30 günde ≥2 unutma (lapse) ve
-   son 8 tekrarda ≥%40 hata, ya da art arda ≥3 hata; reddedilen öneri 14 gün
+Karar kapısı 25 Eki 2026'da geçildi (4–11 onaylandı):
+
+4. ~~PoC sonrası karar kapısı~~ → **devam**, plan değişmedi; FSRS'in loglardan
+   yeniden oynatılması Aşama 3'e (`docs/poc-b-sync.md`).
+5. ~~Zamanlamayı ne etkiler~~ → "tekrar oturumu" seçilen modla (1–4) kartın
+   tek FSRS durumunu günceller (modül 1–2: kullanıcı Again/Hard/Good/Easy;
+   yazma/dinleme: yanlış→Again, neredeyse→Hard, doğru→Good); modül 5 ve
+   serbest çalışma yalnız pratik. Vadesi gelmemiş kart aynı gün yeniden
+   çalışılırsa pratik sayılır.
+6. ~~Web kapsamı~~ → MVP'de giriş + deste/kart yönetimi + hesap silme +
+   dışa aktarma; çalışma, sözlük, istatistik sonra.
+7. ~~Çakışma politikası~~ → alan bazlı LWW + HLC + çakışma kaydı (bölüm 7),
+   PoC-B ile doğrulandı.
+8. ~~Zayıf kelime öneri eşiği~~ → son 30 günde ≥2 unutma (lapse) ve son 8
+   tekrarda ≥%40 hata, ya da art arda ≥3 hata; reddedilen öneri 14 gün
    tekrar gösterilmez; zayıf kelime oturumu pratik sayılır.
-9. **Supabase pause'a karşı:** öneri — yapay "canlı tutma" isteği yok,
-   duraklarsa dashboard'dan açılır.
-10. **Son aramalar cihaza özel kalsın mı** (öneri: evet).
-11. **Sözlükten tek buton:** öneri — buton anlam satırında (o anlam karta
-    gelir); hedef deste son kullanılan, uzun basınca deste seçimi.
-12. Sonraya: Google Play 25$, App Store için alan adı.
+9. ~~Supabase pause~~ → yapay "canlı tutma" isteği yok, duraklarsa
+   dashboard'dan açılır.
+10. ~~Son aramalar~~ → cihaza özel.
+11. ~~Sözlükten tek buton~~ → buton anlam satırında (o anlam karta gelir);
+    hedef deste son kullanılan, uzun basınca deste seçimi.
+12. Sonraya (Aşama 12'de sorulur): Google Play 25$, App Store için alan adı.
+
+PoC'lerden aşamalara eklenenler (aynı gün onaylandı):
+
+- **Aşama 3:** FSRS durumunun `review_logs`'tan yeniden oynatılması; iki
+  cihazda bit düzeyinde aynı sonuç.
+- **Aşama 6:** sözlük eksikleri (`-ly` zarfları, `go` tür sırası, EN→EN
+  işlev kelimeleri — önce boyut etkisi ölçülür).
+- **Aşama 7:** kalıcı hata veren tek işlem `outbox_failed`'a taşınır, kuyruk
+  sürer, ayarlarda sayısı görünür; cihaz saati sunucu `Date`'inden >1 gün
+  ileriyse sync durur ve uyarı çıkar.
+- **Aşama 10:** tablolara doğrudan yazma kapatılır, sync RPC'leri
+  `SECURITY DEFINER` (ADR 0008).
+- **Aşama 11:** gömülü sözlük paketinin release build'de açılış süresi
+  (soğuk açılış ≤2 sn).
 
 ## Doğrulama (uçtan uca)
 
