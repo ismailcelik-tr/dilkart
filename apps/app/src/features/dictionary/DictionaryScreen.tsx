@@ -94,7 +94,7 @@ export function DictionaryScreen() {
 
   if (choosing !== undefined) {
     return (
-      <Screen>
+      <Screen typing>
         <Empty text={`"${choosing.pick.sense.gloss}" hangi desteye?`} />
         <Group>
           {choosing.decks.map((d) => (
@@ -107,7 +107,7 @@ export function DictionaryScreen() {
   }
 
   return (
-    <Screen>
+    <Screen typing>
       <TextInput
         accessibilityLabel="Sözlükte ara"
         placeholder="Kelime ara"

@@ -69,7 +69,7 @@ export function CardFormScreen({ cardId, deckId }: { cardId?: string; deckId?: s
   const has = (e: CardError) => (errors.includes(e) ? MESSAGES[e] : undefined);
 
   return (
-    <Screen>
+    <Screen typing>
       <Field label="Ön yüz" value={draft.front} onChangeText={(front) => set({ front })} error={has(CardError.EmptyFront)} />
       {draft.meanings.map((m, i) => (
         <Field key={i} label={`Anlam ${i + 1}`} value={m.tr} onChangeText={(tr) => setMeaning(i, tr)} />

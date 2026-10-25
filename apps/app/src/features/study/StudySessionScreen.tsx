@@ -66,7 +66,7 @@ export function StudySessionScreen(props: { deckId?: string; module: Module; kin
   const key = `${card.id}:${done}`;
 
   return (
-    <Screen>
+    <Screen typing={module === Module.Typing || module === Module.Listening}>
       <Empty text={`${done} / ${done + left}`} />
       {module === Module.Typing || module === Module.Listening ? (
         <TypedCard key={key} card={card} listen={module === Module.Listening} onRate={rate} />

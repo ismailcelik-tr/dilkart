@@ -23,7 +23,7 @@ export function ForgotScreen() {
   };
 
   return (
-    <Screen>
+    <Screen typing>
       <Field label="E-posta" kind={FieldKind.Email} value={email} onChangeText={setEmail} error={error} />
       <Button title="Kod gönder" kind={ButtonKind.Primary} onPress={submit} />
     </Screen>

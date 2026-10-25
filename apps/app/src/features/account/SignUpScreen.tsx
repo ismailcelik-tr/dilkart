@@ -24,7 +24,7 @@ export function SignUpScreen() {
   };
 
   return (
-    <Screen>
+    <Screen typing>
       <Field label="E-posta" kind={FieldKind.Email} value={email} onChangeText={setEmail} />
       <Field
         label="Şifre"

@@ -49,7 +49,7 @@ export function VerifyScreen({ email, kind }: { email: string; kind: CodeKind })
   };
 
   return (
-    <Screen>
+    <Screen typing>
       <Empty text={`${email} adresine gönderilen 6 haneli kodu gir.`} />
       <Field label="Kod" kind={FieldKind.Code} value={code} onChangeText={setCode} error={error} />
       <Button title="Doğrula" kind={ButtonKind.Primary} onPress={submit} />

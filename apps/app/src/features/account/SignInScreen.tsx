@@ -25,7 +25,7 @@ export function SignInScreen() {
   };
 
   return (
-    <Screen>
+    <Screen typing>
       <Field label="E-posta" kind={FieldKind.Email} value={email} onChangeText={setEmail} />
       <Field label="Şifre" kind={FieldKind.Password} value={password} onChangeText={setPassword} error={error} />
       <Button title="Giriş yap" kind={ButtonKind.Primary} onPress={submit} />

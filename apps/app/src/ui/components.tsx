@@ -1,19 +1,24 @@
 import type { ReactElement, ReactNode } from "react";
+import { useIsFocused } from "expo-router";
+import ReanimatedSwipeable from "react-native-gesture-handler/ReanimatedSwipeable";
 import { FlatList, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { RADIUS, SPACE, useTheme } from "./theme";
 
-export function Screen({ children }: { children: ReactNode }) {
+/** `typing`: the screen has text fields, so it keeps the focused one above the keyboard. */
+export function Screen({ children, typing = false }: { children: ReactNode; typing?: boolean }) {
   const theme = useTheme();
+  // Only the screen in front reacts: screens behind a sheet would otherwise shift when it closes.
+  const focused = useIsFocused();
   return (
     <ScrollView
       style={{ backgroundColor: theme.background }}
       contentContainerStyle={styles.screen}
       keyboardShouldPersistTaps="handled"
       contentInsetAdjustmentBehavior="automatic"
-      // Keeps the focused field above the keyboard (iOS); Android resizes the window instead.
-      automaticallyAdjustKeyboardInsets
-      keyboardDismissMode="interactive"
+      // iOS; Android resizes the window instead.
+      automaticallyAdjustKeyboardInsets={typing && focused}
+      keyboardDismissMode={typing ? "interactive" : "none"}
     >
       {children}
     </ScrollView>
@@ -41,8 +46,6 @@ export function ListScreen<T>(props: {
       style={{ backgroundColor: theme.background }}
       contentContainerStyle={styles.list}
       contentInsetAdjustmentBehavior="automatic"
-      automaticallyAdjustKeyboardInsets
-      keyboardDismissMode="interactive"
     />
   );
 }
@@ -69,6 +72,33 @@ export function Row(props: { title: string; subtitle?: string; selected?: boolea
       </View>
       {props.selected && <Text style={[styles.body, { color: theme.tint }]}>✓</Text>}
     </Pressable>
+  );
+}
+
+/** Swipe left to reveal a delete action; deleting is left to `onDelete`, which should confirm. */
+export function SwipeToDelete({ label, onDelete, children }: { label: string; onDelete: () => void; children: ReactNode }) {
+  const theme = useTheme();
+  return (
+    <ReanimatedSwipeable
+      friction={2}
+      rightThreshold={40}
+      overshootRight={false}
+      renderRightActions={(_progress, _translation, swipeable) => (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={label}
+          onPress={() => {
+            swipeable.close();
+            onDelete();
+          }}
+          style={[styles.swipeAction, { backgroundColor: theme.danger }]}
+        >
+          <Text style={styles.swipeText}>Sil</Text>
+        </Pressable>
+      )}
+    >
+      {children}
+    </ReanimatedSwipeable>
   );
 }
 
@@ -160,4 +190,6 @@ const styles = StyleSheet.create({
   field: { gap: 6 },
   input: { fontSize: 17, paddingHorizontal: 12, paddingVertical: 10, borderRadius: RADIUS },
   empty: { fontSize: 17, textAlign: "center", paddingVertical: 32 },
+  swipeAction: { width: 88, justifyContent: "center", alignItems: "center" },
+  swipeText: { color: "#FFFFFF", fontSize: 17, fontWeight: "600" },
 });

@@ -32,7 +32,7 @@ export function DeckNameScreen({ deckId }: { deckId?: string }) {
   };
 
   return (
-    <Screen>
+    <Screen typing>
       <Field label="Deste adı" value={name} onChangeText={setName} error={error} />
       <Button title="Kaydet" kind={ButtonKind.Primary} onPress={save} />
     </Screen>

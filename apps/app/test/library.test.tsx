@@ -71,6 +71,19 @@ describe("decks", () => {
   });
 });
 
+describe("deck list", () => {
+  it("deletes a deck from its swipe action after confirming", async () => {
+    const { cardId } = await deckWithCard();
+    await renderRouter(APP, { initialUrl: "/" });
+    confirmNextAlert();
+    await fireEvent.press(await screen.findByLabelText("Sil: Fiiller"));
+
+    expect(Alert.alert).toHaveBeenCalledWith("Desteyi sil", "Fiiller ve içindeki 1 kart silinecek.", expect.any(Array));
+    expect(await screen.findByText("Deste oluştur")).toBeOnTheScreen();
+    expect(await lib.card(cardId)).toBeUndefined();
+  });
+});
+
 describe("cards", () => {
   it("adds a card with two meanings", async () => {
     const { deckId } = await deckWithCard();

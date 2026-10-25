@@ -23,7 +23,7 @@ export function NewPasswordScreen() {
   };
 
   return (
-    <Screen>
+    <Screen typing>
       <Field
         label="Yeni şifre"
         kind={FieldKind.Password}

@@ -1,9 +1,9 @@
 import { router, Stack } from "expo-router";
 import { useCallback } from "react";
-import { Alert } from "react-native";
 
 import { useLibrary, useLoad } from "@/services/library";
 import { CardList } from "@/features/cards/CardList";
+import { confirmRemoveDeck } from "@/features/decks/removeDeck";
 import { Button, ButtonKind, Empty } from "@/ui/components";
 import { goBack } from "@/ui/navigation";
 
@@ -24,18 +24,7 @@ export function DeckScreen({ deckId }: { deckId: string }) {
     return <Empty text="Deste bulunamadı" />;
   }
 
-  const remove = () =>
-    Alert.alert("Desteyi sil", `${deck.name} ve içindeki ${cards.length} kart silinecek.`, [
-      { text: "Vazgeç", style: "cancel" },
-      {
-        text: "Sil",
-        style: "destructive",
-        onPress: async () => {
-          await lib.removeDeck(deckId);
-          goBack("/");
-        },
-      },
-    ]);
+  const remove = () => confirmRemoveDeck(lib, deck, cards.length, () => goBack("/"));
 
   return (
     <>
