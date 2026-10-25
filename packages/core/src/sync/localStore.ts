@@ -120,6 +120,7 @@ export const mappedColumns = () =>
   Object.fromEntries(Object.entries(COLUMNS).map(([t, cols]) => [t, ["id", ...Object.keys(cols)]]));
 
 const HLC_KEY = "hlc";
+const NODE_KEY = "node";
 const CURSOR_KEY = "cursor";
 
 const isLww = (table: Table) => table !== Table.ReviewLogs;
@@ -167,21 +168,26 @@ function columns(table: Table, values: Values, strict: boolean): Values {
 export class LocalStore {
   private hlc: Hlc;
 
+  /** Without `node`, the database keeps its own generated device id. */
   constructor(
     private readonly db: SqlDriver,
-    node: string,
+    private readonly node?: string,
     private readonly now: () => number = Date.now,
   ) {
-    this.hlc = zero(node);
+    this.hlc = zero(node ?? "");
   }
 
   async open(): Promise<void> {
     await migrate(this.db);
 
-    const saved = await state(this.db, HLC_KEY);
-    if (saved !== undefined) {
-      this.hlc = { ...decode(saved), node: this.hlc.node };
+    let node = this.node ?? (await state(this.db, NODE_KEY));
+    if (node === undefined) {
+      node = uuidv7(this.now());
+      await setState(this.db, NODE_KEY, node);
     }
+
+    const saved = await state(this.db, HLC_KEY);
+    this.hlc = saved === undefined ? zero(node) : { ...decode(saved), node };
   }
 
   /** Field-wise edit of a synced row (creates it if missing). */

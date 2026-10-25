@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { encode } from "./hlc";
+import { decode, encode } from "./hlc";
 import { LOCAL_SCHEMA_VERSION, LocalStore, mappedColumns, SETTINGS_ID, Table } from "./localStore";
 import { testDriver } from "./testDriver";
 
@@ -181,5 +181,23 @@ describe("LocalStore migrations", () => {
     expect(await b.read(Table.Decks, DECK)).toMatchObject({ name: "eski" });
     const indexes = (await db.all<Column>("PRAGMA index_list(cards)", [])).map((c) => c.name);
     expect(indexes).toContain("cards_deck");
+  });
+});
+
+describe("LocalStore node id", () => {
+  it("creates one per database and keeps it", async () => {
+    const path = join(mkdtempSync(join(tmpdir(), "dilkart-")), "user.sqlite");
+    const first = testDriver(path);
+    const a = new LocalStore(first, undefined, () => now);
+    await a.open();
+    await a.write(Table.Decks, DECK, { name: "a" });
+    first.close();
+
+    const b = new LocalStore(testDriver(path), undefined, () => now);
+    await b.open();
+    await b.write(Table.Decks, DECK, { name: "b" });
+    const [x, y] = (await b.pending(10)).map((p) => decode(p.op.hlc).node);
+    expect(x).toMatch(/^[0-9a-f-]{36}$/);
+    expect(y).toBe(x);
   });
 });
