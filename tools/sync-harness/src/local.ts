@@ -27,19 +27,54 @@ function status(): Record<string, string> {
 
 export const apiUrl = () => status().API_URL ?? "";
 
-/** A fresh account with a signed-in client. */
-export async function signUp(): Promise<SupabaseClient> {
+export function anonClient(): SupabaseClient {
   const { API_URL, PUBLISHABLE_KEY } = status();
   if (!API_URL || !PUBLISHABLE_KEY) {
     throw new Error("local Supabase is not running: supabase start");
   }
+  return createClient(API_URL, PUBLISHABLE_KEY, { auth: { persistSession: false } });
+}
 
-  const client = createClient(API_URL, PUBLISHABLE_KEY, { auth: { persistSession: false } });
-  const { error } = await client.auth.signUp({ email: `${uuidv7()}@harness.local`, password: PASSWORD });
+/** A fresh, already verified account with a signed-in client; skips the e-mail round trip. */
+export async function signUp(): Promise<SupabaseClient> {
+  const { API_URL, SERVICE_ROLE_KEY } = status();
+  const admin = createClient(API_URL ?? "", SERVICE_ROLE_KEY ?? "", { auth: { persistSession: false } });
+  const email = `${uuidv7()}@harness.local`;
+  const created = await admin.auth.admin.createUser({ email, password: PASSWORD, email_confirm: true });
+  if (created.error) {
+    throw created.error;
+  }
+
+  const client = anonClient();
+  const { error } = await client.auth.signInWithPassword({ email, password: PASSWORD });
   if (error) {
     throw error;
   }
   return client;
+}
+
+const MAILPIT = "http://127.0.0.1:54324";
+const CODE = /\b\d{6}\b/;
+const POLL_MS = 200;
+const MAIL_WAIT_MS = 10_000;
+
+/** The code in the newest of at least `count` mails Mailpit holds for `email`. */
+export async function latestCode(email: string, count = 1): Promise<string> {
+  const deadline = Date.now() + MAIL_WAIT_MS;
+  while (Date.now() < deadline) {
+    const search = await fetch(`${MAILPIT}/api/v1/search?query=${encodeURIComponent(`to:"${email}"`)}`);
+    const { messages } = (await search.json()) as { messages: { ID: string }[] };
+    const [newest] = messages;
+    if (newest !== undefined && messages.length >= count) {
+      const message = (await (await fetch(`${MAILPIT}/api/v1/message/${newest.ID}`)).json()) as { Text: string };
+      const code = CODE.exec(message.Text)?.[0];
+      if (code !== undefined) {
+        return code;
+      }
+    }
+    await new Promise((r) => setTimeout(r, POLL_MS));
+  }
+  throw new Error(`no code mailed to ${email}`);
 }
 
 export interface DeviceOptions {
