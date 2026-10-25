@@ -511,6 +511,9 @@ PoC'lerden aşamalara eklenenler (aynı gün onaylandı):
   kart durumları + 7 günlük vade tahmini.
 - **Aşama 4:** kartlı deste silinince kartları da silinir (onayda kart sayısı); arayüz
   standart React Native bileşenleri + sistem görünümü; repository'ler `core/src/data`'da.
+- **Aşama 5:** varsayılan limit 20 yeni / 200 tekrar; yeni kartlar tekrarların arasına
+  dağıtılır; eşleştirme turu 6 çift (en az 4 kart); modül oturum başında seçilir (son seçim
+  hatırlanır). `cards.fsrs_state` senkronize edilmez: cihazda loglardan türetilen önbellek.
 - **Aşama 6:** sözlük eksikleri (`-ly` zarfları, `go` tür sırası, EN→EN
   işlev kelimeleri — önce boyut etkisi ölçülür).
 - **Aşama 7:** kalıcı hata veren tek işlem `outbox_failed`'a taşınır, kuyruk

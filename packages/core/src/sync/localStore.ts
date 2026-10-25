@@ -119,6 +119,10 @@ export const LOCAL_SCHEMA_VERSION = MIGRATIONS.length;
 export const mappedColumns = () =>
   Object.fromEntries(Object.entries(COLUMNS).map(([t, cols]) => [t, ["id", ...Object.keys(cols)]]));
 
+// Device-only caches derived from synced data; never written through the outbox.
+const DERIVED: Partial<Record<Table, string[]>> = { [Table.Cards]: ["fsrs_state"] };
+const FSRS_STATE = "fsrs_state";
+
 const HLC_KEY = "hlc";
 const NODE_KEY = "node";
 const CURSOR_KEY = "cursor";
@@ -151,15 +155,16 @@ function fromSql(kind: Kind, v: unknown): unknown {
   return v;
 }
 
-/** Keeps only known columns of `table`; throws on unknown ones when `strict`. */
+/** Keeps only synced columns of `table`; throws on unknown or derived ones when `strict`. */
 function columns(table: Table, values: Values, strict: boolean): Values {
   const known = COLUMNS[table];
+  const derived = DERIVED[table] ?? [];
   const out: Values = {};
   for (const [k, v] of Object.entries(values)) {
-    if (k in known) {
+    if (k in known && !derived.includes(k)) {
       out[k] = v;
     } else if (strict) {
-      throw new Error(`unknown column ${table}.${k}`);
+      throw new Error(`not a synced column: ${table}.${k}`);
     }
   }
   return out;
@@ -227,6 +232,14 @@ export class LocalStore {
     return readRow(this.db, table, id);
   }
 
+  /** Stores a card's derived FSRS state; local only. */
+  async cacheFsrs(cardId: string, state: unknown): Promise<void> {
+    await this.db.run(`UPDATE ${Table.Cards} SET ${FSRS_STATE} = ? WHERE id = ?`, [
+      toSql(Kind.Json, state),
+      cardId,
+    ]);
+  }
+
   /** Rows matching a trusted SQL condition, decoded like `read`. */
   async select(table: Table, where: string, params: unknown[]): Promise<Values[]> {
     const rows = await this.db.all<Values>(`SELECT * FROM ${table} WHERE ${where}`, params);
@@ -250,19 +263,21 @@ export class LocalStore {
     return Number((await state(this.db, CURSOR_KEY)) ?? 0);
   }
 
-  /** Merges pulled rows and moves the cursor past them, atomically. */
-  async applyRemote(rows: RemoteRow[]): Promise<void> {
+  /** Merges pulled rows and moves the cursor past them, atomically. Returns cards whose logs arrived. */
+  async applyRemote(rows: RemoteRow[]): Promise<string[]> {
     const last = rows.at(-1);
     if (last === undefined) {
-      return;
+      return [];
     }
 
+    const touched = new Set<string>();
     await this.db.transaction(async (tx) => {
       let newest = "";
       for (const { tbl, data } of rows) {
         const values = columns(tbl, data, false);
         if (!isLww(tbl)) {
           await insertLog(tx, String(data.id), values);
+          touched.add(String(data.card_id));
           continue;
         }
 
@@ -283,6 +298,7 @@ export class LocalStore {
       }
       await setState(tx, CURSOR_KEY, String(last.seq));
     });
+    return [...touched];
   }
 
   private async tick(db: SqlExecutor): Promise<string> {

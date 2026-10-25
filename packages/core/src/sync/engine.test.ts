@@ -91,6 +91,17 @@ describe("sync pull", () => {
   });
 });
 
+describe("sync result", () => {
+  it("lists cards whose review logs were pulled", async () => {
+    remote.rows = [
+      { seq: 1, tbl: Table.ReviewLogs, data: { id: "l1", card_id: "c1", reviewed_at: "2026-10-25T06:00:00Z", rating: 3 } },
+      { seq: 2, tbl: Table.ReviewLogs, data: { id: "l2", card_id: "c1", reviewed_at: "2026-10-25T07:00:00Z", rating: 3 } },
+      { seq: 3, tbl: Table.ReviewLogs, data: { id: "l3", card_id: "c2", reviewed_at: "2026-10-25T07:00:00Z", rating: 1 } },
+    ];
+    expect((await sync(store, remote)).sort()).toEqual(["c1", "c2"]);
+  });
+});
+
 describe("retryDelay", () => {
   it("doubles from one second up to five minutes", () => {
     expect([0, 1, 2, 8, 9, 20].map(retryDelay)).toEqual([1_000, 2_000, 4_000, 256_000, 300_000, 300_000]);

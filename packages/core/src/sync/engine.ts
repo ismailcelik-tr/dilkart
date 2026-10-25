@@ -27,9 +27,10 @@ export class UpgradeRequired extends Error {
   }
 }
 
-export async function sync(store: LocalStore, remote: RemoteApi): Promise<void> {
+/** Returns cards whose review logs were pulled; their derived FSRS state is stale. */
+export async function sync(store: LocalStore, remote: RemoteApi): Promise<string[]> {
   await push(store, remote);
-  await pull(store, remote);
+  return pull(store, remote);
 }
 
 export const retryDelay = (attempt: number) => Math.min(BASE_DELAY_MS * 2 ** attempt, MAX_DELAY_MS);
@@ -61,12 +62,15 @@ async function pushSplit(remote: RemoteApi, ops: Op[]): Promise<void> {
   }
 }
 
-async function pull(store: LocalStore, remote: RemoteApi): Promise<void> {
+async function pull(store: LocalStore, remote: RemoteApi): Promise<string[]> {
+  const touched = new Set<string>();
   for (;;) {
     const rows = await remote.pull(await store.cursor(), PULL_PAGE);
-    await store.applyRemote(rows);
+    for (const id of await store.applyRemote(rows)) {
+      touched.add(id);
+    }
     if (rows.length < PULL_PAGE) {
-      return;
+      return [...touched];
     }
   }
 }

@@ -201,3 +201,29 @@ describe("LocalStore node id", () => {
     expect(y).toBe(x);
   });
 });
+
+describe("LocalStore derived FSRS cache", () => {
+  const state = { due: "2026-10-26T06:00:00.000Z", reps: 1 };
+
+  it("keeps fsrs_state out of the outbox", async () => {
+    await store.write(Table.Decks, DECK, { name: "d" });
+    await store.write(Table.Cards, CARD, { deck_id: DECK, front: "go" });
+    await expect(store.write(Table.Cards, CARD, { fsrs_state: state })).rejects.toThrow(/fsrs_state/);
+
+    const before = (await store.pending(100)).length;
+    await store.cacheFsrs(CARD, state);
+    expect(await store.pending(100)).toHaveLength(before);
+    expect(await store.read(Table.Cards, CARD)).toMatchObject({ front: "go", fsrs_state: state });
+  });
+
+  it("ignores fsrs_state from the server and reports cards with pulled logs", async () => {
+    await store.write(Table.Cards, CARD, { deck_id: DECK, front: "go" });
+    await store.cacheFsrs(CARD, state);
+    const touched = await store.applyRemote([
+      { seq: 1, tbl: Table.Cards, data: { id: CARD, front: "go", fsrs_state: { stale: true }, field_clock: {} } },
+      { seq: 2, tbl: Table.ReviewLogs, data: { id: LOG, card_id: CARD, reviewed_at: "2026-10-25T06:00:00Z", rating: 3, mode: 1, tz_offset_min: 180, elapsed_ms: 1, scheduled: true } },
+    ]);
+    expect((await store.read(Table.Cards, CARD))?.fsrs_state).toEqual(state);
+    expect(touched).toEqual([CARD]);
+  });
+});
