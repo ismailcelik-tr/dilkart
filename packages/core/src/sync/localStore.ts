@@ -182,6 +182,7 @@ function columns(table: Table, values: Values, strict: boolean): Values {
 
 export class LocalStore {
   private hlc: Hlc;
+  private readonly listeners = new Set<() => void>();
 
   /** Without `node`, the database keeps its own generated device id. */
   constructor(
@@ -205,6 +206,12 @@ export class LocalStore {
     this.hlc = saved === undefined ? zero(node) : { ...decode(saved), node };
   }
 
+  /** Called after each committed local write; returns an unsubscribe function. */
+  subscribe(listener: () => void): () => void {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
+  }
+
   /** Field-wise edit of a synced row (creates it if missing). */
   write(table: LwwTable, id: string, changes: Values): Promise<void> {
     return this.writeAll([{ table, id, changes }]);
@@ -226,6 +233,7 @@ export class LocalStore {
         await enqueue(tx, { op_id: uuidv7(this.now()), table, row_id: id, values: changes, base, hlc });
       }
     });
+    this.changed();
   }
 
   /** Review logs are insert-only. */
@@ -242,6 +250,7 @@ export class LocalStore {
         await enqueue(tx, { op_id: uuidv7(this.now()), table: Table.ReviewLogs, row_id: id, values, base: {}, hlc });
       }
     });
+    this.changed();
   }
 
   read(table: Table, id: string): Promise<Values | undefined> {
@@ -334,6 +343,12 @@ export class LocalStore {
       await setState(tx, CURSOR_KEY, String(last.seq));
     });
     return [...touched];
+  }
+
+  private changed(): void {
+    for (const listener of this.listeners) {
+      listener();
+    }
   }
 
   private async tick(db: SqlExecutor): Promise<string> {

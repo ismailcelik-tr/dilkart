@@ -229,3 +229,15 @@ describe("LocalStore derived FSRS cache", () => {
     expect(touched).toEqual([CARD]);
   });
 });
+
+describe("LocalStore.subscribe", () => {
+  it("tells listeners after every local write until they unsubscribe", async () => {
+    let calls = 0;
+    const stop = store.subscribe(() => calls++);
+    await store.write(Table.Decks, DECK, { name: "a" });
+    await store.append(LOG, { card_id: CARD, reviewed_at: "2026-10-25T06:00:00Z", rating: 3, mode: 1, tz_offset_min: 0, elapsed_ms: 1 });
+    stop();
+    await store.write(Table.Decks, DECK, { name: "b" });
+    expect(calls).toBe(2);
+  });
+});

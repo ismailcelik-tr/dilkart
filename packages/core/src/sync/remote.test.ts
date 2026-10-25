@@ -1,0 +1,37 @@
+import { describe, expect, it, vi } from "vitest";
+
+import { PermanentError, UpgradeRequired } from "./engine";
+import { rpcRemote, type RpcClient } from "./remote";
+
+const client = (result: Awaited<ReturnType<RpcClient["rpc"]>>): RpcClient => ({ rpc: async () => result });
+const failure = (code: string, status: number) => client({ data: null, error: { code, message: "boom" }, status });
+
+describe("rpcRemote", () => {
+  it("passes ops and rows through", async () => {
+    const rpc = vi.fn(async () => ({ data: [{ seq: 1, tbl: "decks", data: {} }], error: null, status: 200 }));
+    const remote = rpcRemote({ rpc }, "http://x");
+    await remote.push([], 1);
+    expect(await remote.pull(0, 10)).toHaveLength(1);
+    expect(rpc).toHaveBeenCalledWith("sync_push", { ops: [], schema_version: 1 });
+    expect(rpc).toHaveBeenCalledWith("sync_pull", { since: 0, page: 10 });
+  });
+
+  it("maps an outdated schema to UpgradeRequired", async () => {
+    await expect(rpcRemote(failure("DK001", 400), "").push([], 0)).rejects.toBeInstanceOf(UpgradeRequired);
+  });
+
+  it("treats bad data as permanent and outages as retryable", async () => {
+    await expect(rpcRemote(failure("22P02", 400), "").push([], 1)).rejects.toBeInstanceOf(PermanentError);
+    for (const status of [0, 401, 408, 429, 500, 503]) {
+      const error = await rpcRemote(failure("x", status), "").push([], 1).catch((e: unknown) => e);
+      expect(error).not.toBeInstanceOf(PermanentError);
+    }
+  });
+
+  it("reads the server clock from the Date header", async () => {
+    const fetcher = vi.fn(async () => new Response(null, { headers: { date: "Sun, 25 Oct 2026 12:00:00 GMT" } }));
+    const remote = rpcRemote(client({ data: null, error: null, status: 200 }), "http://api", fetcher);
+    expect(await remote.serverTime()).toBe(Date.parse("2026-10-25T12:00:00Z"));
+    expect(fetcher).toHaveBeenCalledWith("http://api/auth/v1/health", { method: "HEAD" });
+  });
+});

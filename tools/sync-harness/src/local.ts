@@ -1,11 +1,10 @@
 // Test fixtures against the local Supabase from `supabase start`.
 import { execFileSync } from "node:child_process";
 
-import { LocalStore, sync, Table, uuidv7, type Review } from "@dilkart/core";
+import { LocalStore, rpcRemote, sync, Table, uuidv7, type Review } from "@dilkart/core";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 import { nodeDriver } from "./driver";
-import { supabaseRemote } from "./remote";
 
 const REPO_ROOT = new URL("../../..", import.meta.url);
 const PASSWORD = "harness-password-1";
@@ -88,11 +87,11 @@ export async function device(name: string, client?: SupabaseClient, opts: Device
   const store = new LocalStore(db, name, opts.now);
   await store.open();
 
-  let remote = client && supabaseRemote(client, apiUrl());
+  let remote = client && rpcRemote(client, apiUrl());
   return {
     store,
     login: (c: SupabaseClient) => {
-      remote = supabaseRemote(c, apiUrl());
+      remote = rpcRemote(c, apiUrl());
     },
     sync: async () => {
       if (remote === undefined) {

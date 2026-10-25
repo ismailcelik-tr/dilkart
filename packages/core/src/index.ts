@@ -32,3 +32,5 @@ export { RecentSearches } from "./data/recent";
 export type { Recent } from "./data/recent";
 export { adoptGuest } from "./data/adopt";
 export type { Adopted } from "./data/adopt";
+export { rpcRemote } from "./sync/remote";
+export type { RpcClient } from "./sync/remote";
