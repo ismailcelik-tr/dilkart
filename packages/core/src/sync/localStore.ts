@@ -87,24 +87,34 @@ const COLUMNS: Record<Table, Record<string, Kind>> = {
   },
 };
 
-const SQL_TYPE: Record<Kind, string> = {
-  [Kind.Text]: "TEXT",
-  [Kind.Int]: "INTEGER",
-  [Kind.Real]: "REAL",
-  [Kind.Bool]: "INTEGER",
-  [Kind.Json]: "TEXT",
-};
+const CLOCK = "field_clock TEXT NOT NULL DEFAULT '{}'";
+
+// Append-only: never edit a shipped entry. After entry i runs, user_version = i + 1.
+const MIGRATIONS = [
+  `CREATE TABLE decks (id TEXT PRIMARY KEY, name TEXT, deleted_at TEXT, ${CLOCK});
+   CREATE TABLE cards (id TEXT PRIMARY KEY, deck_id TEXT, front TEXT, usage_label TEXT, meanings TEXT,
+     example_en TEXT, example_tr TEXT, dict_entry_id TEXT, dict_sense_id TEXT, is_weak INTEGER,
+     weak_dismissed_until TEXT, fsrs_state TEXT, deleted_at TEXT, ${CLOCK});
+   CREATE TABLE review_logs (id TEXT PRIMARY KEY, card_id TEXT, reviewed_at TEXT, rating INTEGER, mode INTEGER,
+     tz_offset_min INTEGER, elapsed_ms INTEGER, scheduled INTEGER);
+   CREATE TABLE user_settings (id TEXT PRIMARY KEY, daily_new_limit INTEGER, daily_review_limit INTEGER,
+     day_start_hour INTEGER, desired_retention REAL, tts_accent TEXT, ${CLOCK});
+   CREATE TABLE outbox (seq INTEGER PRIMARY KEY AUTOINCREMENT, op TEXT NOT NULL);
+   CREATE TABLE sync_state (key TEXT PRIMARY KEY, value TEXT NOT NULL);`,
+  `CREATE INDEX IF NOT EXISTS cards_deck ON cards (deck_id);
+   CREATE INDEX IF NOT EXISTS review_logs_card ON review_logs (card_id);`,
+];
+
+export const LOCAL_SCHEMA_VERSION = MIGRATIONS.length;
+
+/** Columns the store reads and writes, per table; tests check migrations create them. */
+export const mappedColumns = () =>
+  Object.fromEntries(Object.entries(COLUMNS).map(([t, cols]) => [t, ["id", ...Object.keys(cols)]]));
 
 const HLC_KEY = "hlc";
 const CURSOR_KEY = "cursor";
 
 const isLww = (table: Table) => table !== Table.ReviewLogs;
-
-function ddl(table: Table): string {
-  const cols = Object.entries(COLUMNS[table]).map(([name, kind]) => `${name} ${SQL_TYPE[kind]}`);
-  const clock = isLww(table) ? ", field_clock TEXT NOT NULL DEFAULT '{}'" : "";
-  return `CREATE TABLE IF NOT EXISTS ${table} (id TEXT PRIMARY KEY, ${cols.join(", ")}${clock});`;
-}
 
 function toSql(kind: Kind, v: unknown): unknown {
   if (v == null) {
@@ -158,10 +168,7 @@ export class LocalStore {
   }
 
   async open(): Promise<void> {
-    const tables = Object.values(Table).map(ddl).join("\n");
-    await this.db.exec(`${tables}
-      CREATE TABLE IF NOT EXISTS outbox (seq INTEGER PRIMARY KEY AUTOINCREMENT, op TEXT NOT NULL);
-      CREATE TABLE IF NOT EXISTS sync_state (key TEXT PRIMARY KEY, value TEXT NOT NULL);`);
+    await migrate(this.db);
 
     const saved = await state(this.db, HLC_KEY);
     if (saved !== undefined) {
@@ -256,6 +263,15 @@ export class LocalStore {
     const hlc = encode(this.hlc);
     await setState(db, HLC_KEY, hlc);
     return hlc;
+  }
+}
+
+async function migrate(db: SqlDriver): Promise<void> {
+  const [row] = await db.all<{ user_version: number }>("PRAGMA user_version", []);
+  for (let v = row?.user_version ?? 0; v < MIGRATIONS.length; v++) {
+    await db.transaction(async (tx) => {
+      await tx.exec(`${MIGRATIONS[v]}\nPRAGMA user_version = ${v + 1};`);
+    });
   }
 }
 

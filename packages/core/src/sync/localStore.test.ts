@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { encode } from "./hlc";
-import { LocalStore, SETTINGS_ID, Table } from "./localStore";
+import { LOCAL_SCHEMA_VERSION, LocalStore, mappedColumns, SETTINGS_ID, Table } from "./localStore";
 import { testDriver } from "./testDriver";
 
 const NODE = "dev-a";
@@ -144,5 +144,42 @@ describe("LocalStore persistence", () => {
     const [before, after] = (await b.pending(10)).map((p) => p.op);
     expect(before?.values.name).toBe("kalıcı");
     expect(String(after?.hlc) > String(before?.hlc)).toBe(true);
+  });
+});
+
+describe("LocalStore migrations", () => {
+  type Column = { name: string };
+
+  it("brings a new database to the latest version", async () => {
+    const db = testDriver();
+    await new LocalStore(db, NODE).open();
+    const [{ user_version } = { user_version: 0 }] = await db.all<{ user_version: number }>("PRAGMA user_version", []);
+    expect(user_version).toBe(LOCAL_SCHEMA_VERSION);
+  });
+
+  it("creates every column the store maps", async () => {
+    const db = testDriver();
+    await new LocalStore(db, NODE).open();
+    for (const [table, columns] of Object.entries(mappedColumns())) {
+      const actual = (await db.all<Column>(`PRAGMA table_info(${table})`, [])).map((c) => c.name);
+      expect(actual).toEqual(expect.arrayContaining(columns));
+    }
+  });
+
+  it("upgrades an older database without losing rows", async () => {
+    const path = join(mkdtempSync(join(tmpdir(), "dilkart-")), "user.sqlite");
+    const old = testDriver(path);
+    const a = new LocalStore(old, NODE);
+    await a.open();
+    await a.write(Table.Decks, DECK, { name: "eski" });
+    await old.exec("DROP INDEX cards_deck; PRAGMA user_version = 1");
+    old.close();
+
+    const db = testDriver(path);
+    const b = new LocalStore(db, NODE);
+    await b.open();
+    expect(await b.read(Table.Decks, DECK)).toMatchObject({ name: "eski" });
+    const indexes = (await db.all<Column>("PRAGMA index_list(cards)", [])).map((c) => c.name);
+    expect(indexes).toContain("cards_deck");
   });
 });
