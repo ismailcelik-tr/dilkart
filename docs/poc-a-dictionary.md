@@ -27,7 +27,7 @@ Yeniden üretme: `tools/dictionary` içinde `extract` (iki dump) → `cli` (pake
 | Altın küme, ilk 3 sonuçta doğru (EN→TR / TR→EN / EN→EN) | ≥%95 | 100/100, 100/100, 59/59 | ✅ (aşağıdaki not) |
 | Arama p95, Mac (Python) | — | tam ≤0,3 ms, önek ≤2 ms | ✅ |
 | Arama p95, iOS simülatör (Hermes + expo-sqlite) | ≤100 ms | tam ≤3,6 ms, önek ≤15 ms | ✅ |
-| Arama p95, gerçek iPhone | ≤100 ms | **ölçülmedi** | ⏳ |
+| Arama p95, gerçek iPhone (Expo Go, 25 Eki) | ≤100 ms | tam ≤3,9 ms, önek ≤17,1 ms | ✅ |
 
 Notlar:
 - Altın kümeyi aynı kişi yazdı ve iki cevap ("kapamak", "en route") doğru oldukları için
@@ -59,10 +59,11 @@ Notlar:
 - `-ly` zarfları (`significantly`, `widely`): sıfat köküne düşen yedek kural.
 - EN→EN işlev kelimeleri: İngilizce Vikisözlük tanımlarıyla tamamlanabilir (boyut etkisi ölçülmeli).
 - Girdi sıralaması: `go` için isim ("go oyunu") fiilin önüne geçiyor; tür önceliği gerekebilir.
-- Paket açılışı: simülatörde 105 ms (asset kopyası dahil); gerçek cihazda 97 MB kopya ölçülmeli.
+- Paket açılışı: simülatörde 105 ms (asset kopyası dahil); iPhone'da 2.666 ms, ama dev
+  modunda Wi-Fi indirmesi dahil. Gömülü 97 MB kopya release build'de ölçülmeli.
 - Lisans: CC BY-SA paketi GitHub Releases'te açık yayınlanacak; atıf ekranı Aşama 6.
 
-## Karar önerisi
+## Karar
 
-Kaynak ve yaklaşım eşikleri karşılıyor. Gerçek iPhone ölçümü eşiği (p95 ≤100 ms) tutarsa
-ADR 0004 "Kabul" olur ve sözlük uygulamayla gömülü gelir.
+Kaynak ve yaklaşım tüm eşikleri karşılıyor; gerçek iPhone'da p95 ≤17,1 ms. ADR 0004
+"Kabul"; sözlük uygulamayla gömülü gelir.
