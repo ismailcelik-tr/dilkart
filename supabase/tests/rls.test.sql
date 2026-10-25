@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(16);
+select plan(17);
 
 insert into auth.users (id, email) values
   ('00000000-0000-0000-0000-00000000000a', 'a@test.local'),
@@ -11,6 +11,11 @@ from pg_class
 where oid in ('public.app_config'::regclass, 'public.user_settings'::regclass, 'public.decks'::regclass,
               'public.cards'::regclass, 'public.review_logs'::regclass, 'public.applied_ops'::regclass,
               'public.card_conflicts'::regclass);
+
+select is_empty($$
+  select c.relname from pg_class c join pg_namespace n on n.oid = c.relnamespace
+  where n.nspname = 'public' and c.relkind = 'r' and not (c.relrowsecurity and c.relforcerowsecurity)
+$$, 'no public table lacks forced RLS, including future ones');
 
 -- User A writes.
 set local role authenticated;
