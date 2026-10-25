@@ -9,7 +9,8 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "icon": "./assets/expo.icon",
-      "bundleIdentifier": "com.ismailcelik.dilkart"
+      "bundleIdentifier": "com.ismailcelik.dilkart",
+      "appleTeamId": "YE5W32UMGG"
     },
     "android": {
       "adaptiveIcon": {
