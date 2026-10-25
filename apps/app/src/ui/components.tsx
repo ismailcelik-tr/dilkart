@@ -47,16 +47,22 @@ export function Group({ children }: { children: ReactNode }) {
   return <View style={[styles.group, { backgroundColor: theme.surface }]}>{children}</View>;
 }
 
-export function Row({ title, subtitle, onPress }: { title: string; subtitle?: string; onPress: () => void }) {
+export function Row(props: { title: string; subtitle?: string; selected?: boolean; onPress: () => void }) {
   const theme = useTheme();
   return (
     <Pressable
       accessibilityRole="button"
-      onPress={onPress}
+      accessibilityState={{ selected: props.selected }}
+      onPress={props.onPress}
       style={({ pressed }) => [styles.row, { borderBottomColor: theme.separator }, pressed && styles.pressed]}
     >
-      <Text style={[styles.body, { color: theme.text }]}>{title}</Text>
-      {subtitle !== undefined && <Text style={[styles.caption, { color: theme.secondary }]}>{subtitle}</Text>}
+      <View style={styles.rowText}>
+        <Text style={[styles.body, { color: theme.text }]}>{props.title}</Text>
+        {props.subtitle !== undefined && (
+          <Text style={[styles.caption, { color: theme.secondary }]}>{props.subtitle}</Text>
+        )}
+      </View>
+      {props.selected && <Text style={[styles.body, { color: theme.tint }]}>✓</Text>}
     </Pressable>
   );
 }
@@ -115,7 +121,14 @@ const styles = StyleSheet.create({
   list: { paddingVertical: SPACE },
   footer: { padding: SPACE, gap: SPACE },
   group: { borderRadius: RADIUS, overflow: "hidden" },
-  row: { paddingHorizontal: SPACE, paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, gap: 2 },
+  row: {
+    paddingHorizontal: SPACE,
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  rowText: { flex: 1, gap: 2 },
   body: { fontSize: 17 },
   caption: { fontSize: 13 },
   pressed: { opacity: 0.6 },

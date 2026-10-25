@@ -1,19 +1,20 @@
 import { fireEvent, renderRouter, screen } from "expo-router/testing-library";
 import { Alert, type AlertButton } from "react-native";
 
-import { openLibrary } from "@/services/openLibrary";
+import { openData } from "@/services/openData";
 import type { Library } from "@dilkart/core";
 
-import { testLibrary } from "./testLibrary";
+import { testData } from "./testData";
 
-jest.mock("@/services/openLibrary", () => ({ openLibrary: jest.fn() }));
+jest.mock("@/services/openData", () => ({ openData: jest.fn() }));
 
 const APP = "./src/app";
 let lib: Library;
 
 beforeEach(async () => {
-  lib = await testLibrary();
-  jest.mocked(openLibrary).mockResolvedValue(lib);
+  const data = await testData();
+  lib = data.library;
+  jest.mocked(openData).mockResolvedValue(data);
 });
 
 /** Presses the destructive button of the next confirmation. */

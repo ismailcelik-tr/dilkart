@@ -10,12 +10,17 @@ describe("uuidv7", () => {
   });
 
   it("encodes the timestamp in the first 48 bits", () => {
-    const ms = 1_761_379_200_000;
+    const ms = 4_000_000_000_000; // ahead of any id made earlier in this run
     expect(uuidv7(ms).replace("-", "").slice(0, 12)).toBe(ms.toString(16).padStart(12, "0"));
   });
 
-  it("sorts by time", () => {
-    const ids = [1, 2, 1_000, 1_761_379_200_000].map((ms) => uuidv7(ms));
+  it("sorts by time, even when the clock steps back", () => {
+    const ids = [4_000_000_000_001, 4_000_000_000_500, 1_000, 4_000_000_001_000].map((ms) => uuidv7(ms));
+    expect([...ids].sort()).toEqual(ids);
+  });
+
+  it("keeps generation order within a millisecond", () => {
+    const ids = Array.from({ length: 5_000 }, () => uuidv7(4_000_000_002_000));
     expect([...ids].sort()).toEqual(ids);
   });
 

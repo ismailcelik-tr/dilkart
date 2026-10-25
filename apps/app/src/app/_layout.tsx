@@ -18,6 +18,9 @@ export default function RootLayout() {
         <Stack.Screen name="card/new" options={{ title: "Yeni kart", presentation: "modal" }} />
         <Stack.Screen name="card/[id]/index" options={{ title: "Kartı düzenle" }} />
         <Stack.Screen name="card/[id]/move" options={{ title: "Desteye taşı", presentation: "modal" }} />
+        <Stack.Screen name="study/index" options={{ title: "Çalış" }} />
+        <Stack.Screen name="study/session" options={{ title: "Çalışma" }} />
+        <Stack.Screen name="study/match" options={{ title: "Eşleştirme" }} />
       </Stack>
     </LibraryProvider>
   );

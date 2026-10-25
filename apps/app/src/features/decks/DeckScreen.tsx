@@ -46,8 +46,12 @@ export function DeckScreen({ deckId }: { deckId: string }) {
         footer={
           <>
             <Button
-              title="Kart ekle"
+              title="Çalış"
               kind={ButtonKind.Primary}
+              onPress={() => router.push({ pathname: "/study", params: { deckId } })}
+            />
+            <Button
+              title="Kart ekle"
               onPress={() => router.push({ pathname: "/card/new", params: { deckId } })}
             />
             <Button title="Yeniden adlandır" onPress={() => router.push(`/deck/${deckId}/rename`)} />

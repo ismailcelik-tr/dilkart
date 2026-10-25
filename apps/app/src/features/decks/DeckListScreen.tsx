@@ -24,6 +24,7 @@ export function DeckListScreen() {
               <Row key={d.id} title={d.name} subtitle={`${d.cardCount} kart`} onPress={() => router.push(`/deck/${d.id}`)} />
             ))}
           </Group>
+          <Button title="Tümünü çalış" kind={ButtonKind.Primary} onPress={() => router.push("/study")} />
           <Button title="Yeni deste" onPress={() => router.push("/deck/new")} />
         </>
       )}
