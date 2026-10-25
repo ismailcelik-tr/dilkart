@@ -241,3 +241,13 @@ describe("LocalStore.subscribe", () => {
     expect(calls).toBe(2);
   });
 });
+
+describe("LocalStore.counts", () => {
+  it("counts unsent and parked ops", async () => {
+    await store.write(Table.Decks, DECK, { name: "a" });
+    await store.write(Table.Decks, DECK, { name: "b" });
+    const [first] = await store.pending(1);
+    await store.fail(first?.seq ?? 0, "bad");
+    expect(await store.counts()).toEqual({ pending: 1, failed: 1 });
+  });
+});

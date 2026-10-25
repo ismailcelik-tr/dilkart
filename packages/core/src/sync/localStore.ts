@@ -290,6 +290,14 @@ export class LocalStore {
     });
   }
 
+  async counts(): Promise<{ pending: number; failed: number }> {
+    const [row] = await this.db.all<{ pending: number; failed: number }>(
+      "SELECT (SELECT count(*) FROM outbox) AS pending, (SELECT count(*) FROM outbox_failed) AS failed",
+      [],
+    );
+    return { pending: row?.pending ?? 0, failed: row?.failed ?? 0 };
+  }
+
   async failed(): Promise<Failed[]> {
     const rows = await this.db.all<{ seq: number; op: string; error: string; failed_at: string }>(
       "SELECT seq, op, error, failed_at FROM outbox_failed ORDER BY seq",

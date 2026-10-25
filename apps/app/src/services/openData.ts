@@ -1,21 +1,26 @@
 import { Library, LocalStore, RecentSearches, Study, type SqlReader } from "@dilkart/core";
-import { importDatabaseFromAssetAsync, openDatabaseAsync } from "expo-sqlite";
+import { deleteDatabaseAsync, importDatabaseFromAssetAsync, openDatabaseAsync } from "expo-sqlite";
 
 import { sqlDriver } from "@/drivers/sqlDriver";
 
-// Accounts get user_<uid>.sqlite in stage 7; until then everyone is a guest.
-const GUEST_DB = "guest.sqlite";
+import { GUEST_DB } from "./databases";
+
 // Copied from the bundled asset once; a new pack ships under a new name so it is copied again.
 const DICTIONARY_DB = "dictionary-v1.sqlite";
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const DICTIONARY_ASSET: number = require("@/assets/dictionary/dictionary.sqlite");
 
 export interface AppData {
+  /** Database file name. */
+  name: string;
   library: Library;
   study: Study;
   recent: RecentSearches;
+  store: LocalStore;
   /** Opened on first use: the first copy of the 106 MB pack should not delay app start. */
   dictionary: () => Promise<SqlReader>;
+  /** Idempotent. */
+  close: () => Promise<void>;
 }
 
 let dictionary: Promise<SqlReader> | undefined;
@@ -28,11 +33,28 @@ function openDictionary(): Promise<SqlReader> {
   return dictionary;
 }
 
-export async function openData(): Promise<AppData> {
-  const driver = sqlDriver(await openDatabaseAsync(GUEST_DB));
+export async function openData(name: string = GUEST_DB): Promise<AppData> {
+  const db = await openDatabaseAsync(name);
+  const driver = sqlDriver(db);
   const store = new LocalStore(driver);
   await store.open();
   const library = new Library(store, driver);
-  // Settings screen arrives in stage 8; until then study uses the defaults.
-  return { library, study: new Study(store, library, driver), recent: new RecentSearches(driver), dictionary: openDictionary };
+  let closed = false;
+  return {
+    name,
+    library,
+    // Settings screen arrives in stage 8; until then study uses the defaults.
+    study: new Study(store, library, driver),
+    recent: new RecentSearches(driver),
+    store,
+    dictionary: openDictionary,
+    close: async () => {
+      if (!closed) {
+        closed = true;
+        await db.closeAsync();
+      }
+    },
+  };
 }
+
+export const deleteData = (name: string) => deleteDatabaseAsync(name);

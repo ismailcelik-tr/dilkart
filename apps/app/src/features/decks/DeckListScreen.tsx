@@ -28,6 +28,7 @@ export function DeckListScreen() {
           <Button title="Yeni deste" onPress={() => router.push("/deck/new")} />
         </>
       )}
+      <Button title="Hesap" onPress={() => router.push("/account")} />
       <Button title="Lisanslar ve kaynaklar" onPress={() => router.push("/about/licenses")} />
       {__DEV__ && <Button title="Sözlük ölçümü" onPress={() => router.push("/dev/dictionary-bench")} />}
       {__DEV__ && <Button title="Liste ölçümü" onPress={() => router.push("/dev/deck-bench")} />}

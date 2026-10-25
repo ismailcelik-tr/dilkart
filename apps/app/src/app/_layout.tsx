@@ -31,6 +31,13 @@ export default function RootLayout() {
           options={{ title: "Sözlük", presentation: "formSheet", sheetAllowedDetents: [0.75, 1], sheetGrabberVisible: true }}
         />
         <Stack.Screen name="about/licenses" options={{ title: "Lisanslar ve kaynaklar" }} />
+        <Stack.Screen name="account/index" options={{ title: "Hesap" }} />
+        <Stack.Screen name="account/sign-up" options={{ title: "Hesap oluştur" }} />
+        <Stack.Screen name="account/sign-in" options={{ title: "Giriş yap" }} />
+        <Stack.Screen name="account/verify" options={{ title: "Kodu gir" }} />
+        <Stack.Screen name="account/forgot" options={{ title: "Şifremi unuttum" }} />
+        <Stack.Screen name="account/new-password" options={{ title: "Yeni şifre" }} />
+        <Stack.Screen name="account/adopt" options={{ title: "Bu cihazdaki kartlar", presentation: "modal" }} />
       </Stack>
     </LibraryProvider>
   );

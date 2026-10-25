@@ -8,7 +8,7 @@ import type { AppData } from "@/services/openData";
 const FIXTURE = `${__dirname}/../../../spec/fixtures/dictionary.sqlite`;
 
 /** Real core on in-memory node:sqlite; the dictionary is the shared test fixture. */
-export async function testData(settings: StudySettings = DEFAULT_SETTINGS) {
+export async function testData(settings: StudySettings = DEFAULT_SETTINGS, name = "test.sqlite") {
   const db = testDriver();
   const store = new LocalStore(db);
   await store.open();
@@ -16,7 +16,10 @@ export async function testData(settings: StudySettings = DEFAULT_SETTINGS) {
   const pack = new DatabaseSync(FIXTURE, { readOnly: true });
   const reader: SqlReader = { all: async (sql, params) => pack.prepare(sql).all(...(params as SQLInputValue[])) as never };
   const data: AppData = {
+    name,
     library,
+    store,
+    close: async () => undefined,
     study: new Study(store, library, db, settings),
     recent: new RecentSearches(db),
     dictionary: async () => reader,

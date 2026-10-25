@@ -88,7 +88,21 @@ export function Button({ title, onPress, kind = ButtonKind.Plain }: { title: str
   );
 }
 
-export function Field(props: { label: string; value: string; onChangeText: (text: string) => void; error?: string }) {
+export enum FieldKind {
+  Text = "text",
+  Email = "email",
+  Password = "password",
+  Code = "code",
+}
+
+export function Field(props: {
+  label: string;
+  value: string;
+  onChangeText: (text: string) => void;
+  error?: string;
+  kind?: FieldKind;
+  hint?: string;
+}) {
   const theme = useTheme();
   return (
     <View style={styles.field}>
@@ -99,8 +113,12 @@ export function Field(props: { label: string; value: string; onChangeText: (text
         onChangeText={props.onChangeText}
         autoCapitalize="none"
         autoCorrect={false}
+        secureTextEntry={props.kind === FieldKind.Password}
+        keyboardType={props.kind === FieldKind.Email ? "email-address" : props.kind === FieldKind.Code ? "number-pad" : "default"}
+        textContentType={props.kind === FieldKind.Code ? "oneTimeCode" : undefined}
         style={[styles.input, { color: theme.text, backgroundColor: theme.surface }]}
       />
+      {props.hint !== undefined && <Text style={[styles.caption, { color: theme.secondary }]}>{props.hint}</Text>}
       {props.error !== undefined && <ErrorText text={props.error} />}
     </View>
   );
