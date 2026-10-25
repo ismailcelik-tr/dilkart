@@ -6,7 +6,7 @@ export { retryDelay, SCHEMA_VERSION, sync, UpgradeRequired } from "./sync/engine
 export type { RemoteApi } from "./sync/engine";
 export { uuidv7 } from "./sync/id";
 export { LocalStore, SETTINGS_ID, Table } from "./sync/localStore";
-export type { Op, RemoteRow, SqlDriver } from "./sync/localStore";
+export type { Op, RemoteRow, SqlDriver, SqlExecutor } from "./sync/localStore";
 export type { Values } from "./sync/merge";
 export { CardError, findDuplicate, validate } from "./card/card";
 export type { CardDraft, Meaning, Validation } from "./card/card";

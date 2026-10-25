@@ -509,6 +509,8 @@ PoC'lerden aşamalara eklenenler (aynı gün onaylandı):
   doğru sayılır (doğru yazım gösterilir); zayıf kural için "hata" = Again;
   istatistikler: günlük tekrar (30 gün), hatırlama oranı (7/30 gün), seri,
   kart durumları + 7 günlük vade tahmini.
+- **Aşama 4:** kartlı deste silinince kartları da silinir (onayda kart sayısı); arayüz
+  standart React Native bileşenleri + sistem görünümü; repository'ler `core/src/data`'da.
 - **Aşama 6:** sözlük eksikleri (`-ly` zarfları, `go` tür sırası, EN→EN
   işlev kelimeleri — önce boyut etkisi ölçülür).
 - **Aşama 7:** kalıcı hata veren tek işlem `outbox_failed`'a taşınır, kuyruk

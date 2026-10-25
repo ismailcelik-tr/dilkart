@@ -4,11 +4,14 @@ import { decode, encode, receive, tick, zero, type Hlc } from "./hlc";
 import { uuidv7 } from "./id";
 import { merge, type Clock, type Clocked, type Values } from "./merge";
 
-export interface SqlDriver extends SqlReader {
+export interface SqlExecutor extends SqlReader {
   run(sql: string, params: unknown[]): Promise<void>;
   exec(sql: string): Promise<void>;
-  /** Runs `fn` exclusively in one transaction. */
-  transaction<T>(fn: () => Promise<T>): Promise<T>;
+}
+
+export interface SqlDriver extends SqlExecutor {
+  /** Runs `fn` exclusively in one transaction; statements inside must use `tx`. */
+  transaction<T>(fn: (tx: SqlExecutor) => Promise<T>): Promise<T>;
 }
 
 export enum Table {
@@ -160,7 +163,7 @@ export class LocalStore {
       CREATE TABLE IF NOT EXISTS outbox (seq INTEGER PRIMARY KEY AUTOINCREMENT, op TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS sync_state (key TEXT PRIMARY KEY, value TEXT NOT NULL);`);
 
-    const saved = await this.state(HLC_KEY);
+    const saved = await state(this.db, HLC_KEY);
     if (saved !== undefined) {
       this.hlc = { ...decode(saved), node: this.hlc.node };
     }
@@ -169,40 +172,31 @@ export class LocalStore {
   /** Field-wise edit of a synced row (creates it if missing). */
   async write(table: Exclude<Table, Table.ReviewLogs>, id: string, changes: Values): Promise<void> {
     const values = columns(table, changes, true);
-    await this.db.transaction(async () => {
-      const hlc = await this.tick();
-      const clock = (await this.clocked(table, id))?.clock ?? {};
+    await this.db.transaction(async (tx) => {
+      const hlc = await this.tick(tx);
+      const clock = (await clocked(tx, table, id))?.clock ?? {};
       const base = Object.fromEntries(Object.keys(values).map((f) => [f, clock[f] ?? null]));
       for (const f of Object.keys(values)) {
         clock[f] = hlc;
       }
 
-      await this.upsert(table, id, values, clock);
-      await this.enqueue({ op_id: uuidv7(this.now()), table, row_id: id, values, base, hlc });
+      await upsert(tx, table, id, values, clock);
+      await enqueue(tx, { op_id: uuidv7(this.now()), table, row_id: id, values, base, hlc });
     });
   }
 
   /** Review logs are insert-only. */
   async append(id: string, log: Values): Promise<void> {
     const values = columns(Table.ReviewLogs, log, true);
-    await this.db.transaction(async () => {
-      const hlc = await this.tick();
-      await this.insertLog(id, values);
-      await this.enqueue({ op_id: uuidv7(this.now()), table: Table.ReviewLogs, row_id: id, values, base: {}, hlc });
+    await this.db.transaction(async (tx) => {
+      const hlc = await this.tick(tx);
+      await insertLog(tx, id, values);
+      await enqueue(tx, { op_id: uuidv7(this.now()), table: Table.ReviewLogs, row_id: id, values, base: {}, hlc });
     });
   }
 
-  async read(table: Table, id: string): Promise<Values | undefined> {
-    const [row] = await this.db.all<Values>(`SELECT * FROM ${table} WHERE id = ?`, [id]);
-    if (row === undefined) {
-      return undefined;
-    }
-
-    const out: Values = { id: row.id };
-    for (const [k, kind] of Object.entries(COLUMNS[table])) {
-      out[k] = fromSql(kind, row[k]);
-    }
-    return out;
+  read(table: Table, id: string): Promise<Values | undefined> {
+    return readRow(this.db, table, id);
   }
 
   async pending(limit: number): Promise<Pending[]> {
@@ -219,7 +213,7 @@ export class LocalStore {
   }
 
   async cursor(): Promise<number> {
-    return Number((await this.state(CURSOR_KEY)) ?? 0);
+    return Number((await state(this.db, CURSOR_KEY)) ?? 0);
   }
 
   /** Merges pulled rows and moves the cursor past them, atomically. */
@@ -229,20 +223,20 @@ export class LocalStore {
       return;
     }
 
-    await this.db.transaction(async () => {
+    await this.db.transaction(async (tx) => {
       let newest = "";
       for (const { tbl, data } of rows) {
         const values = columns(tbl, data, false);
         if (!isLww(tbl)) {
-          await this.insertLog(String(data.id), values);
+          await insertLog(tx, String(data.id), values);
           continue;
         }
 
         const id = tbl === Table.Settings ? SETTINGS_ID : String(data.id);
         const remote: Clocked = { values, clock: (data.field_clock ?? {}) as Clock };
-        const local = await this.clocked(tbl, id);
+        const local = await clocked(tx, tbl, id);
         const merged = local ? merge(local, remote) : remote;
-        await this.upsert(tbl, id, merged.values, merged.clock);
+        await upsert(tx, tbl, id, merged.values, merged.clock);
 
         for (const c of Object.values(remote.clock)) {
           newest = c > newest ? c : newest;
@@ -251,64 +245,77 @@ export class LocalStore {
 
       if (newest !== "") {
         this.hlc = receive(this.hlc, decode(newest), this.now());
-        await this.setState(HLC_KEY, encode(this.hlc));
+        await setState(tx, HLC_KEY, encode(this.hlc));
       }
-      await this.setState(CURSOR_KEY, String(last.seq));
+      await setState(tx, CURSOR_KEY, String(last.seq));
     });
   }
 
-  private async tick(): Promise<string> {
+  private async tick(db: SqlExecutor): Promise<string> {
     this.hlc = tick(this.hlc, this.now());
     const hlc = encode(this.hlc);
-    await this.setState(HLC_KEY, hlc);
+    await setState(db, HLC_KEY, hlc);
     return hlc;
   }
+}
 
-  private async clocked(table: Table, id: string): Promise<Clocked | undefined> {
-    const values = await this.read(table, id);
-    if (values === undefined) {
-      return undefined;
-    }
-
-    const [row] = await this.db.all<{ field_clock: string }>(`SELECT field_clock FROM ${table} WHERE id = ?`, [id]);
-    delete values.id;
-    return { values, clock: JSON.parse(row?.field_clock ?? "{}") as Clock };
+async function readRow(db: SqlExecutor, table: Table, id: string): Promise<Values | undefined> {
+  const [row] = await db.all<Values>(`SELECT * FROM ${table} WHERE id = ?`, [id]);
+  if (row === undefined) {
+    return undefined;
   }
 
-  private async upsert(table: Table, id: string, values: Values, clock: Clock): Promise<void> {
-    const kinds = COLUMNS[table];
-    const names = Object.keys(values);
-    const cols = ["id", ...names, "field_clock"];
-    const updates = [...names, "field_clock"].map((c) => `${c} = excluded.${c}`);
-    await this.db.run(
-      `INSERT INTO ${table} (${cols.join(", ")}) VALUES (${cols.map(() => "?").join(", ")})
-       ON CONFLICT (id) DO UPDATE SET ${updates.join(", ")}`,
-      [id, ...names.map((n) => toSql(kinds[n] ?? Kind.Text, values[n])), JSON.stringify(clock)],
-    );
+  const out: Values = { id: row.id };
+  for (const [k, kind] of Object.entries(COLUMNS[table])) {
+    out[k] = fromSql(kind, row[k]);
+  }
+  return out;
+}
+
+async function clocked(db: SqlExecutor, table: Table, id: string): Promise<Clocked | undefined> {
+  const values = await readRow(db, table, id);
+  if (values === undefined) {
+    return undefined;
   }
 
-  private async insertLog(id: string, values: Values): Promise<void> {
-    const kinds = COLUMNS[Table.ReviewLogs];
-    const names = Object.keys(values);
-    await this.db.run(
-      `INSERT OR IGNORE INTO ${Table.ReviewLogs} (id, ${names.join(", ")}) VALUES (?${", ?".repeat(names.length)})`,
-      [id, ...names.map((n) => toSql(kinds[n] ?? Kind.Text, values[n]))],
-    );
-  }
+  const [row] = await db.all<{ field_clock: string }>(`SELECT field_clock FROM ${table} WHERE id = ?`, [id]);
+  delete values.id;
+  return { values, clock: JSON.parse(row?.field_clock ?? "{}") as Clock };
+}
 
-  private async enqueue(op: Op): Promise<void> {
-    await this.db.run("INSERT INTO outbox (op) VALUES (?)", [JSON.stringify(op)]);
-  }
+async function upsert(db: SqlExecutor, table: Table, id: string, values: Values, clock: Clock): Promise<void> {
+  const kinds = COLUMNS[table];
+  const names = Object.keys(values);
+  const cols = ["id", ...names, "field_clock"];
+  const updates = [...names, "field_clock"].map((c) => `${c} = excluded.${c}`);
+  await db.run(
+    `INSERT INTO ${table} (${cols.join(", ")}) VALUES (${cols.map(() => "?").join(", ")})
+     ON CONFLICT (id) DO UPDATE SET ${updates.join(", ")}`,
+    [id, ...names.map((n) => toSql(kinds[n] ?? Kind.Text, values[n])), JSON.stringify(clock)],
+  );
+}
 
-  private async state(key: string): Promise<string | undefined> {
-    const [row] = await this.db.all<{ value: string }>("SELECT value FROM sync_state WHERE key = ?", [key]);
-    return row?.value;
-  }
+async function insertLog(db: SqlExecutor, id: string, values: Values): Promise<void> {
+  const kinds = COLUMNS[Table.ReviewLogs];
+  const names = Object.keys(values);
+  await db.run(
+    `INSERT OR IGNORE INTO ${Table.ReviewLogs} (id, ${names.join(", ")}) VALUES (?${", ?".repeat(names.length)})`,
+    [id, ...names.map((n) => toSql(kinds[n] ?? Kind.Text, values[n]))],
+  );
+}
 
-  private async setState(key: string, value: string): Promise<void> {
-    await this.db.run(
-      "INSERT INTO sync_state (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value",
-      [key, value],
-    );
-  }
+async function enqueue(db: SqlExecutor, op: Op): Promise<void> {
+  await db.run("INSERT INTO outbox (op) VALUES (?)", [JSON.stringify(op)]);
+}
+
+async function state(db: SqlExecutor, key: string): Promise<string | undefined> {
+  const [row] = await db.all<{ value: string }>("SELECT value FROM sync_state WHERE key = ?", [key]);
+  return row?.value;
+}
+
+async function setState(db: SqlExecutor, key: string, value: string): Promise<void> {
+  await db.run(
+    "INSERT INTO sync_state (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value",
+    [key, value],
+  );
 }
