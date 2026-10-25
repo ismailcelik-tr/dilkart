@@ -30,3 +30,5 @@ export { DEFAULT_SETTINGS, Study } from "./study/study";
 export type { Plan, StudyContext, StudySettings } from "./study/study";
 export { RecentSearches } from "./data/recent";
 export type { Recent } from "./data/recent";
+export { adoptGuest } from "./data/adopt";
+export type { Adopted } from "./data/adopt";

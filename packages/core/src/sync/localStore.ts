@@ -229,12 +229,18 @@ export class LocalStore {
   }
 
   /** Review logs are insert-only. */
-  async append(id: string, log: Values): Promise<void> {
-    const values = columns(Table.ReviewLogs, log, true);
+  append(id: string, log: Values): Promise<void> {
+    return this.appendAll([{ id, log }]);
+  }
+
+  async appendAll(logs: { id: string; log: Values }[]): Promise<void> {
+    const checked = logs.map(({ id, log }) => ({ id, values: columns(Table.ReviewLogs, log, true) }));
     await this.db.transaction(async (tx) => {
-      const hlc = await this.tick(tx);
-      await insertLog(tx, id, values);
-      await enqueue(tx, { op_id: uuidv7(this.now()), table: Table.ReviewLogs, row_id: id, values, base: {}, hlc });
+      for (const { id, values } of checked) {
+        const hlc = await this.tick(tx);
+        await insertLog(tx, id, values);
+        await enqueue(tx, { op_id: uuidv7(this.now()), table: Table.ReviewLogs, row_id: id, values, base: {}, hlc });
+      }
     });
   }
 
