@@ -1,6 +1,7 @@
 // Which study answers move the schedule; docs/plan.md section 16, item 5.
+import { Verdict } from "../text/answer";
 import { dayKey } from "./day";
-import type { FsrsState } from "./scheduler";
+import { Rating, type FsrsState } from "./scheduler";
 
 /** Stored as review_logs.mode. */
 export enum Module {
@@ -39,3 +40,12 @@ export function schedules(state: FsrsState | undefined, at: string, ctx: StudyCo
   const day = (t: string) => dayKey(t, ctx.dayStartHour, ctx.tzOffsetMin);
   return day(state.lastReview) !== day(at);
 }
+
+const GRADES: Record<Verdict, Rating> = {
+  [Verdict.Correct]: Rating.Good,
+  [Verdict.Almost]: Rating.Hard,
+  [Verdict.Wrong]: Rating.Again,
+};
+
+/** Rating for the typing and listening modules; recall modules let the user pick. */
+export const gradeFor = (verdict: Verdict) => GRADES[verdict];

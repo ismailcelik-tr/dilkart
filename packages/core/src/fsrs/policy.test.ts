@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { Module, schedules, Session, type StudyContext } from "./policy";
+import { Verdict } from "../text/answer";
+import { gradeFor, Module, schedules, Session, type StudyContext } from "./policy";
 import { Rating, Scheduler } from "./scheduler";
 
 const REVIEW: StudyContext = { session: Session.Review, module: Module.Recall, dayStartHour: 4, tzOffsetMin: 180 };
@@ -35,5 +36,11 @@ describe("schedules", () => {
     expect(schedules(undefined, "2026-10-25T07:00:00Z", { ...REVIEW, module: Module.Match })).toBe(false);
     expect(schedules(learned, learned.due, { ...REVIEW, session: Session.Free })).toBe(false);
     expect(schedules(learned, learned.due, { ...REVIEW, session: Session.Weak })).toBe(false);
+  });
+});
+
+describe("gradeFor", () => {
+  it("maps typed answers to FSRS ratings", () => {
+    expect([Verdict.Correct, Verdict.Almost, Verdict.Wrong].map(gradeFor)).toEqual([Rating.Good, Rating.Hard, Rating.Again]);
   });
 });
