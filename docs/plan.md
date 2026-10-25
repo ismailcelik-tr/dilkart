@@ -83,7 +83,7 @@ supabase-js). UI hiçbir zaman sürücüye doğrudan gitmez.
 |---|---|---|---|
 | Mobil | **React Native + Expo + TS** (kalıyor) | Tek kod tabanından web çıktısı; ts-fsrs ve Supabase Edge Functions (Deno/TS) ile aynı dil; expo-sqlite FTS5 varsayılan açık; expo-speech; yerel bildirim | Flutter (web çıktısı canvas tabanlı ve ağır, Dart ayrı dil); native Swift+Kotlin (iki kod tabanı); KMP (UI yine iki kez) |
 | Web | **Expo Router web, `web.output: "static"`** | Ayrı framework yok; domain kodu ve bileşenler paylaşılır; `npx expo export -p web` → `dist/` | Next.js static export: daha iyi web DX ama ikinci framework, kart düzenleme ekranları iki kez yazılır |
-| Yerel DB | **expo-sqlite + Drizzle ORM** (kullanıcı verisi), düz expo-sqlite (sözlük) | FTS5 config plugin ile varsayılan açık; Drizzle tip güvenli şema + Expo migration desteği | WatermelonDB (JSI kurulumu, kendi sync protokolü yine backend ister) |
+| Yerel DB | **expo-sqlite**; kullanıcı verisi şeması ve migration'ları `core` `LocalStore`'da (ADR 0009), sözlük düz expo-sqlite | FTS5 config plugin ile varsayılan açık; tüm yazmalar outbox'tan geçer | WatermelonDB (JSI kurulumu, kendi sync protokolü yine backend ister); Drizzle (outbox'ı atlayan yazma yolu, kod üretimi; ADR 0009) |
 | Senkronizasyon | **Kendi sync'imiz: Postgres RPC** (`sync_push`, `sync_pull`) | Ücretsiz, ek servis/hesap yok, tamamen test edilebilir | PowerSync Free: 7 gün bağlantısız kalan instance kaldırılıyor, 2 GB/ay; self-host Fly'da 5$'ı aşar. ElectricSQL: ayrı servis + replikasyon, maliyet |
 | Algoritma | **FSRS (ts-fsrs, MIT, FSRS-6)**, cihazda | Daha az tekrarla aynı hatırlama; parametrelenebilir hedef hatırlama oranı; deterministik → test ve yeniden hesaplama kolay | SM-2: basit ama sabit çarpanlar, kötü kart "ease hell" sorunu |
 | TTS | **expo-speech (cihaz TTS)** | Ücretsiz, çevrimdışı (iOS'ta yüklü sesler), lisans sorunu yok | Bulut TTS (kart ister); Wiktionary ses dosyaları (20 GB, karışık lisans) |
@@ -104,7 +104,7 @@ supabase-js). UI hiçbir zaman sürücüye doğrudan gitmez.
     app/                   Expo Router rotaları ((tabs), study, decks, settings, web'e özel auth rotaları)
     src/features/          study, decks, dictionary, weak, stats, settings, auth
     src/services/          use-case'ler (UI buraya konuşur)
-    src/data/              repository arayüzleri + local (SQLite/Drizzle) + remote (Supabase)
+    src/data/              repository arayüzleri + local (core LocalStore) + remote (Supabase)
     src/drivers/           expo-sqlite, supabase-js, expo-speech sarmalayıcıları
   packages/core/           saf TS, platformdan bağımsız: fsrs, text (normalize, answer), sync (HLC, merge), stats, weak
   tools/dictionary/        Python ETL → dictionary.sqlite + kapsam raporu
@@ -425,7 +425,7 @@ beklemeden). Hesap gereken aşamadan önce senden yeni hesap açman istenir.
 | 2 | **PoC-B Sync** | Yerel Supabase: şema, RLS, `sync_push/pull`, HLC; iki istemcili harness: çevrimdışı, idempotency, çakışma, misafir bağlama, 50k log ilk sync | 0 | Bölüm 12 sync kriterleri yerelde geçer |
 | — | **Karar kapısı** | PoC sonuçlarıyla devam/değişiklik kararı | 1, 2 | Senin onayın |
 | 3 | Core domain | Kart modeli, FSRS sarmalayıcı, 4A metin işleme, cevap kontrolü, zayıf öneri kuralı, istatistik hesapları | Kapı | Bölüm 12'deki core kriter tabloları geçer |
-| 4 | Yerel uygulama | Drizzle şeması + migration, repository katmanı, deste/kart CRUD, misafir modu | 3 | Çevrimdışı CRUD kriterleri |
+| 4 | Yerel uygulama | LocalStore migration'ları + sorgular (ADR 0009), repository katmanı, deste/kart CRUD, misafir modu | 3 | Çevrimdışı CRUD kriterleri |
 | 5 | Çalışma | Modül 1–5, oturum akışı, günlük limitler, TTS + aksan | 4 | Çalışma ve TTS kriterleri |
 | 6 | Sözlük paneli | Alt panel (çalışma durumu korunur), üç yön, son aramalar, tek butonla kart, mükerrer uyarısı, lisans ekranı | 1, 4 | Arama + tek buton kriterleri |
 | 7 | Hesap + sync | **Yeni Supabase hesabı + prod projesi**, Gmail SMTP, OTP akışları, misafir bağlama, sync servisi, çıkış | 2, 4 | Auth + sync kriterleri (prod'a karşı duman testi) |
