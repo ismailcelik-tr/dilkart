@@ -31,7 +31,7 @@ export function SignUpScreen() {
         kind={FieldKind.Password}
         value={password}
         onChangeText={setPassword}
-        hint="En az 8 karakter; harf ve rakam içersin."
+        hint="En az 8 karakter."
         error={error}
       />
       <Button title="Kayıt ol" kind={ButtonKind.Primary} onPress={submit} />

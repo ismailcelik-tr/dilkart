@@ -14,15 +14,22 @@ const MESSAGES: Record<string, string> = {
   email_not_confirmed: "E-posta adresin henüz doğrulanmadı.",
   user_already_exists: "Bu e-postayla bir hesap zaten var.",
   email_exists: "Bu e-postayla bir hesap zaten var.",
-  weak_password: "Şifre en az 8 karakter olmalı, harf ve rakam içermeli.",
+  weak_password: "Şifre en az 8 karakter olmalı.",
   over_email_send_rate_limit: "Yeni kod için biraz bekle.",
   validation_failed: "E-posta adresini kontrol et.",
   email_address_invalid: "E-posta adresini kontrol et.",
 };
 const FALLBACK = "Bir sorun oldu; bağlantını kontrol edip tekrar dene.";
 
-const result = (error: AuthError | null): AuthResult =>
-  error === null ? { ok: true } : { ok: false, message: MESSAGES[error.code ?? ""] ?? FALLBACK };
+function result(error: AuthError | null): AuthResult {
+  if (error === null) {
+    return { ok: true };
+  }
+  if (__DEV__) {
+    console.warn("AUTH", error.name, error.code, error.status, error.message);
+  }
+  return { ok: false, message: MESSAGES[error.code ?? ""] ?? FALLBACK };
+}
 
 /** Needs the e-mailed code before the account works. */
 export const signUp = async (client: SupabaseClient, email: string, password: string) =>

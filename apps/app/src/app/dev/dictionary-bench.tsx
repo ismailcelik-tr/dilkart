@@ -1,16 +1,13 @@
 // PoC-A: on-device dictionary latency and accuracy. Dev-only screen; removed after the decision gate.
 import { Direction, lookup, searchKey, type SqlReader } from "@dilkart/core";
-import { SQLiteProvider, useSQLiteContext } from "expo-sqlite";
 import { useEffect, useState } from "react";
 import { ScrollView, StyleSheet, Text } from "react-native";
 
-import { sqlReader } from "@/drivers/sqlReader";
+import { useDictionary } from "@/services/library";
 
 type GoldRow = [string, string[]];
 
-// Both files are copied from tools/dictionary/data/out and are not in git.
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const PACK: number = require("@/assets/dictionary/dictionary.sqlite");
+// Copied from tools/dictionary/gold; not in git.
 const GOLD: Record<Direction, GoldRow[]> = require("@/assets/dictionary/bench.json");
 const TOP_RESULTS = 3;
 const PREFIX_CHARS = 3;
@@ -68,26 +65,30 @@ async function measure(db: SqlReader, direction: Direction): Promise<Row> {
   };
 }
 
-function Bench({ openedAt }: { openedAt: number }) {
-  const db = useSQLiteContext();
+/** Measures the pack the app itself uses, so a stale copy cannot hide behind the bench. */
+export default function DictionaryBench() {
+  const { dictionary } = useDictionary();
   const [rows, setRows] = useState<Row[]>([]);
-  const [openMs] = useState(() => performance.now() - openedAt);
+  const [openMs, setOpenMs] = useState<number>();
 
   useEffect(() => {
     (async () => {
-      const reader = sqlReader(db);
+      const started = performance.now();
+      const reader = await dictionary();
+      const opened = performance.now() - started;
+      setOpenMs(opened);
       const measured: Row[] = [];
       for (const d of [Direction.EnTr, Direction.TrEn, Direction.EnEn]) {
         measured.push(await measure(reader, d));
       }
       setRows(measured);
-      console.log("BENCH", JSON.stringify({ openMs, rows: measured }));
+      console.log("BENCH", JSON.stringify({ openMs: opened, rows: measured }));
     })();
-  }, [db, openMs]);
+  }, [dictionary]);
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text>Paket açılışı: {openMs.toFixed(0)} ms</Text>
+      <Text>Paket açılışı: {openMs === undefined ? "…" : `${openMs.toFixed(0)} ms`}</Text>
       {rows.length === 0 && <Text>Ölçülüyor…</Text>}
       {rows.map((r) => (
         <Text key={r.direction}>
@@ -96,15 +97,6 @@ function Bench({ openedAt }: { openedAt: number }) {
         </Text>
       ))}
     </ScrollView>
-  );
-}
-
-export default function DictionaryBench() {
-  const [openedAt] = useState(() => performance.now());
-  return (
-    <SQLiteProvider databaseName="dictionary.sqlite" assetSource={{ assetId: PACK }}>
-      <Bench openedAt={openedAt} />
-    </SQLiteProvider>
   );
 }
 

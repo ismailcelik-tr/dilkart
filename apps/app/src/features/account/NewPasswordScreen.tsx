@@ -29,7 +29,7 @@ export function NewPasswordScreen() {
         kind={FieldKind.Password}
         value={password}
         onChangeText={setValue}
-        hint="En az 8 karakter; harf ve rakam içersin."
+        hint="En az 8 karakter."
         error={error}
       />
       <Button title="Şifreyi kaydet" kind={ButtonKind.Primary} onPress={submit} />
