@@ -428,7 +428,7 @@ beklemeden). Hesap gereken aşamadan önce senden yeni hesap açman istenir.
 | 4 | Yerel uygulama | LocalStore migration'ları + sorgular (ADR 0009), repository katmanı, deste/kart CRUD, misafir modu | 3 | Çevrimdışı CRUD kriterleri |
 | 5 | Çalışma | Modül 1–5, oturum akışı, günlük limitler, TTS + aksan | 4 | Çalışma ve TTS kriterleri |
 | 6 | Sözlük paneli | Alt panel (çalışma durumu korunur), üç yön, son aramalar, tek butonla kart, mükerrer uyarısı, lisans ekranı | 1, 4 | Arama + tek buton kriterleri |
-| 7 | Hesap + sync | **Yeni Supabase hesabı + prod projesi**, Gmail SMTP, OTP akışları, misafir bağlama, sync servisi, çıkış | 2, 4 | Auth + sync kriterleri (prod'a karşı duman testi) |
+| 7 | Hesap + sync | **Supabase `dilkart` org + prod projesi** (mevcut hesap, Free), Gmail SMTP, OTP akışları, misafir bağlama, sync servisi, çıkış | 2, 4 | Auth + sync kriterleri (prod'a karşı duman testi) |
 | 8 | Kişiselleştirme | Zayıf kelimeler, istatistik ekranı, ayarlar, yerel hatırlatmalar | 5 | İlgili kriterler |
 | 9 | Web | Web rotaları: auth, deste/kart yönetimi, hesap silme, dışa aktarma; **yeni Fly.io hesabı**, Dockerfile, deploy workflow | 7 | Web → mobil kriteri, Fly'da canlı |
 | 10 | Güvenlik ve operasyon | pgTAP tam set, `delete-account`, private yedek reposu + geri yükleme provası, Sentry, Maestro E2E | 7, 9 | Güvenlik + yedek kriterleri |
