@@ -1,0 +1,61 @@
+// Weak-word suggestion; docs/plan.md section 16, item 8. An error is an Again.
+import { CardState, chronological, Rating, Scheduler, type FsrsState, type Review } from "../fsrs/scheduler";
+
+const MS_PER_DAY = 86_400_000;
+const LAPSE_WINDOW_MS = 30 * MS_PER_DAY;
+const MIN_LAPSES = 2;
+const RECENT_REVIEWS = 8;
+const MIN_ERROR_RATE = 0.4;
+const WRONG_STREAK = 3;
+const DISMISS_MS = 14 * MS_PER_DAY;
+
+export interface WeakStatus {
+  isWeak: boolean;
+  dismissedUntil?: string | null;
+}
+
+/** Practice reviews count as answers; only scheduled ones can be lapses. */
+export function suggestWeak(reviews: Review[], now: string, status: WeakStatus): boolean {
+  if (status.isWeak) {
+    return false;
+  }
+  if (status.dismissedUntil && Date.parse(status.dismissedUntil) > Date.parse(now)) {
+    return false;
+  }
+
+  const ordered = chronological(reviews);
+  const errors = (rs: Review[]) => rs.filter((r) => r.rating === Rating.Again).length;
+
+  const streak = ordered.slice(-WRONG_STREAK);
+  if (streak.length === WRONG_STREAK && errors(streak) === WRONG_STREAK) {
+    return true;
+  }
+
+  const recent = ordered.slice(-RECENT_REVIEWS);
+  return lapses(ordered, now) >= MIN_LAPSES && errors(recent) / recent.length >= MIN_ERROR_RATE;
+}
+
+/** When a dismissed suggestion may come back. */
+export const dismissUntil = (now: string) => new Date(Date.parse(now) + DISMISS_MS).toISOString();
+
+// Retention does not change state transitions, so the default scheduler suffices.
+const scheduler = new Scheduler();
+
+/** Agains on a card in review state within the window, as FSRS counts lapses. */
+function lapses(ordered: Review[], now: string): number {
+  const since = Date.parse(now) - LAPSE_WINDOW_MS;
+  let state: FsrsState | undefined;
+  let count = 0;
+
+  for (const r of ordered) {
+    if (!r.scheduled) {
+      continue;
+    }
+    const lapse = state?.state === CardState.Review && r.rating === Rating.Again;
+    if (lapse && Date.parse(r.reviewedAt) >= since) {
+      count++;
+    }
+    state = scheduler.rate(state, r.rating, r.reviewedAt);
+  }
+  return count;
+}

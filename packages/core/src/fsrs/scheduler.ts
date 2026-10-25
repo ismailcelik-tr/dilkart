@@ -58,17 +58,17 @@ export class Scheduler {
 
   /** State after the scheduled reviews in time order; undefined while the card is new. */
   replay(reviews: Review[]): FsrsState | undefined {
-    const ordered = reviews
-      .filter((r) => r.scheduled)
-      .sort((a, b) => a.reviewedAt.localeCompare(b.reviewedAt) || a.id.localeCompare(b.id));
-
     let state: FsrsState | undefined;
-    for (const r of ordered) {
+    for (const r of chronological(reviews).filter((x) => x.scheduled)) {
       state = this.rate(state, r.rating, r.reviewedAt);
     }
     return state;
   }
 }
+
+/** Time order with id as tie-break, identical on every device. */
+export const chronological = (reviews: Review[]) =>
+  [...reviews].sort((a, b) => a.reviewedAt.localeCompare(b.reviewedAt) || a.id.localeCompare(b.id));
 
 function toCard(s: FsrsState): Card {
   return {
