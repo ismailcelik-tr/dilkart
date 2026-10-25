@@ -33,6 +33,10 @@ function useData(): AppData {
 
 export const useLibrary = (): Library => useData().library;
 export const useStudy = (): Study => useData().study;
+export const useDictionary = () => {
+  const { dictionary, recent } = useData();
+  return { dictionary, recent };
+};
 
 /** Reloads on every focus so a list shows edits made on the screen above it. */
 export function useLoad<T>(load: (library: Library) => Promise<T>): T | undefined {

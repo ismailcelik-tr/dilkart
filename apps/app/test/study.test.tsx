@@ -13,15 +13,6 @@ jest.mock("expo-speech", () => ({
   stop: jest.fn(async () => undefined),
   getAvailableVoicesAsync: jest.fn(),
 }));
-jest.mock("expo-sqlite/kv-store", () => {
-  const values = new Map<string, string>();
-  return {
-    Storage: {
-      getItem: async (k: string) => values.get(k) ?? null,
-      setItem: async (k: string, v: string) => void values.set(k, v),
-    },
-  };
-});
 
 const APP = "./src/app";
 const WORDS: [string, string][] = [

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Alert } from "react-native";
 
 import { useLibrary } from "@/services/library";
+import { rememberDeck } from "@/services/prefs";
 import { Button, ButtonKind, ErrorText, Field, Screen } from "@/ui/components";
 import { goBack } from "@/ui/navigation";
 
@@ -45,6 +46,9 @@ export function CardFormScreen({ cardId, deckId }: { cardId?: string; deckId?: s
     if (!result.ok) {
       setErrors(result.errors);
       return;
+    }
+    if (home !== undefined) {
+      await rememberDeck(home);
     }
     back();
   };

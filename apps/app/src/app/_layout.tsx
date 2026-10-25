@@ -1,6 +1,7 @@
 import "@/services/polyfills";
 
-import { Stack } from "expo-router";
+import { router, Stack } from "expo-router";
+import { Pressable, Text } from "react-native";
 
 import { LibraryProvider } from "@/services/library";
 
@@ -10,7 +11,11 @@ export const unstable_settings = { anchor: "index" };
 export default function RootLayout() {
   return (
     <LibraryProvider>
-      <Stack>
+      <Stack
+        screenOptions={({ route }) => ({
+          headerRight: route.name === "dictionary" ? undefined : () => <DictionaryButton />,
+        })}
+      >
         <Stack.Screen name="index" options={{ title: "Destelerim" }} />
         <Stack.Screen name="deck/new" options={{ title: "Yeni deste", presentation: "modal" }} />
         <Stack.Screen name="deck/[id]/index" options={{ title: "" }} />
@@ -21,7 +26,20 @@ export default function RootLayout() {
         <Stack.Screen name="study/index" options={{ title: "Çalış" }} />
         <Stack.Screen name="study/session" options={{ title: "Çalışma" }} />
         <Stack.Screen name="study/match" options={{ title: "Eşleştirme" }} />
+        <Stack.Screen
+          name="dictionary"
+          options={{ title: "Sözlük", presentation: "formSheet", sheetAllowedDetents: [0.75, 1], sheetGrabberVisible: true }}
+        />
+        <Stack.Screen name="about/licenses" options={{ title: "Lisanslar ve kaynaklar" }} />
       </Stack>
     </LibraryProvider>
+  );
+}
+
+function DictionaryButton() {
+  return (
+    <Pressable accessibilityRole="button" onPress={() => router.push("/dictionary")} hitSlop={8}>
+      <Text style={{ fontSize: 17, color: "#007AFF" }}>Sözlük</Text>
+    </Pressable>
   );
 }
