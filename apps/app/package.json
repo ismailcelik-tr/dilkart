@@ -50,7 +50,8 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "typecheck": "expo customize tsconfig.json && tsc --noEmit && tsc --noEmit -p test",
-    "test": "jest"
+    "test": "jest",
+    "dictionary": "node scripts/fetch-dictionary.mjs"
   },
   "private": true,
   "jest": {
