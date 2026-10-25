@@ -1,5 +1,5 @@
 // Weak-word suggestion; docs/plan.md section 16, item 8. An error is an Again.
-import { CardState, chronological, Rating, Scheduler, type FsrsState, type Review } from "../fsrs/scheduler";
+import { CardState, chronological, Rating, Scheduler, type Review } from "../fsrs/scheduler";
 
 const MS_PER_DAY = 86_400_000;
 const LAPSE_WINDOW_MS = 30 * MS_PER_DAY;
@@ -44,18 +44,8 @@ const scheduler = new Scheduler();
 /** Agains on a card in review state within the window, as FSRS counts lapses. */
 function lapses(ordered: Review[], now: string): number {
   const since = Date.parse(now) - LAPSE_WINDOW_MS;
-  let state: FsrsState | undefined;
-  let count = 0;
-
-  for (const r of ordered) {
-    if (!r.scheduled) {
-      continue;
-    }
-    const lapse = state?.state === CardState.Review && r.rating === Rating.Again;
-    if (lapse && Date.parse(r.reviewedAt) >= since) {
-      count++;
-    }
-    state = scheduler.rate(state, r.rating, r.reviewedAt);
-  }
-  return count;
+  return scheduler
+    .history(ordered)
+    .filter((s) => s.before?.state === CardState.Review && s.review.rating === Rating.Again)
+    .filter((s) => Date.parse(s.review.reviewedAt) >= since).length;
 }

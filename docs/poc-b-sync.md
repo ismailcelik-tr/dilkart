@@ -18,7 +18,7 @@ Tarih: 25 Eki 2026. Kod: `supabase/migrations` (şema, RLS, `sync_push`/`sync_pu
 | Eski istemci şeması | `DK001` → `UpgradeRequired`; veri cihazda kalır | ✅ |
 | İlk sync 5.000 kart + 50.000 log ≤30 sn | çekme 0,7 sn (gönderme 4,3 sn), yerel Docker | ✅ (aşağıdaki not) |
 | RLS izolasyonu | pgTAP 16 test: okuma, sahte `user_id`, anon, değişmez log, hard delete yok | ✅ |
-| FSRS durumu iki cihazda bit düzeyinde aynı | ölçülmedi; log kümelerinin eşitliği kanıtlandı | ⏭ Aşama 3 |
+| FSRS durumu iki cihazda bit düzeyinde aynı | Aşama 3'te eklendi: iki cihaz birleşik loglardan aynı durumu üretir (harness), sıra bağımsız (core) | ✅ |
 
 Testler: pgTAP 38, core Vitest 34 (sync), harness 10 senaryo. Hepsi CI'da (`sync` job).
 

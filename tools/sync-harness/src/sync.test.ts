@@ -3,7 +3,7 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { SCHEMA_VERSION, Table, UpgradeRequired, uuidv7 } from "@dilkart/core";
+import { Scheduler, SCHEMA_VERSION, Table, UpgradeRequired, uuidv7 } from "@dilkart/core";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { describe, expect, it } from "vitest";
 
@@ -38,9 +38,10 @@ async function serverCount(client: SupabaseClient, table: string): Promise<numbe
   return count ?? 0;
 }
 
+let logSeq = 0;
 const log = (cardId: string, rating: number) => ({
   card_id: cardId,
-  reviewed_at: new Date(T0).toISOString(),
+  reviewed_at: new Date(T0 + logSeq++ * STEP_MS).toISOString(),
   rating,
   mode: 1,
   tz_offset_min: 180,
@@ -161,6 +162,11 @@ describe("review history", () => {
     expect(await serverCount(client, Table.ReviewLogs)).toBe(50);
     expect(await web.count(Table.ReviewLogs)).toBe(50);
     expect(await phone.count(Table.ReviewLogs)).toBe(50);
+
+    const scheduler = new Scheduler();
+    const onWeb = scheduler.replay(await web.reviews(card));
+    expect(onWeb).toBeDefined();
+    expect(scheduler.replay(await phone.reviews(card))).toEqual(onWeb);
   });
 });
 

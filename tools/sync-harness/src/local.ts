@@ -1,7 +1,7 @@
 // Test fixtures against the local Supabase from `supabase start`.
 import { execFileSync } from "node:child_process";
 
-import { LocalStore, sync, uuidv7, type Table } from "@dilkart/core";
+import { LocalStore, sync, Table, uuidv7, type Review } from "@dilkart/core";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 import { nodeDriver } from "./driver";
@@ -64,6 +64,14 @@ export async function device(name: string, client?: SupabaseClient, opts: Device
       await sync(store, remote);
     },
     count: async (table: Table) => (await db.all<{ n: number }>(`SELECT count(*) AS n FROM ${table}`, []))[0]?.n ?? 0,
+    /** Review logs as the scheduler reads them. */
+    reviews: async (cardId: string): Promise<Review[]> =>
+      (
+        await db.all<{ id: string; reviewed_at: string; rating: number; scheduled: number | null }>(
+          `SELECT id, reviewed_at, rating, scheduled FROM ${Table.ReviewLogs} WHERE card_id = ?`,
+          [cardId],
+        )
+      ).map((r) => ({ id: r.id, reviewedAt: r.reviewed_at, rating: r.rating, scheduled: r.scheduled !== 0 })),
     close: () => db.close(),
   };
 }

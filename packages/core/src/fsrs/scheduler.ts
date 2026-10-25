@@ -37,6 +37,12 @@ export interface Review {
   scheduled: boolean;
 }
 
+export interface Step {
+  review: Review;
+  before: FsrsState | undefined;
+  after: FsrsState;
+}
+
 export const DEFAULT_RETENTION = 0.9;
 
 // New cards start at the epoch: FSRS ignores due for state New, and a fixed
@@ -58,11 +64,19 @@ export class Scheduler {
 
   /** State after the scheduled reviews in time order; undefined while the card is new. */
   replay(reviews: Review[]): FsrsState | undefined {
-    let state: FsrsState | undefined;
-    for (const r of chronological(reviews).filter((x) => x.scheduled)) {
-      state = this.rate(state, r.rating, r.reviewedAt);
+    return this.history(reviews).at(-1)?.after;
+  }
+
+  /** Each scheduled review with the state it met and the state it left. */
+  history(reviews: Review[]): Step[] {
+    const steps: Step[] = [];
+    let before: FsrsState | undefined;
+    for (const review of chronological(reviews).filter((r) => r.scheduled)) {
+      const after = this.rate(before, review.rating, review.reviewedAt);
+      steps.push({ review, before, after });
+      before = after;
     }
-    return state;
+    return steps;
   }
 }
 
