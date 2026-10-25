@@ -201,8 +201,9 @@ function Entry(props: { result: Result; onAdd: (s: Sense) => void; onChoose: (s:
           </Pressable>
         </View>
       ))}
-      {result.examples.slice(0, MAX_EXAMPLES).map((e) => (
-        <Text key={e.en} style={[styles.caption, { color: theme.secondary }]}>
+      {result.examples.slice(0, MAX_EXAMPLES).map((e, i) => (
+        // Sources can repeat a sentence, so the text alone is not a unique key.
+        <Text key={`${i}:${e.en}`} style={[styles.caption, { color: theme.secondary }]}>
           {e.en}
           {e.tr ? ` — ${e.tr}` : ""}
         </Text>

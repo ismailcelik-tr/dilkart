@@ -11,6 +11,9 @@ export function Screen({ children }: { children: ReactNode }) {
       contentContainerStyle={styles.screen}
       keyboardShouldPersistTaps="handled"
       contentInsetAdjustmentBehavior="automatic"
+      // Keeps the focused field above the keyboard (iOS); Android resizes the window instead.
+      automaticallyAdjustKeyboardInsets
+      keyboardDismissMode="interactive"
     >
       {children}
     </ScrollView>
@@ -38,6 +41,8 @@ export function ListScreen<T>(props: {
       style={{ backgroundColor: theme.background }}
       contentContainerStyle={styles.list}
       contentInsetAdjustmentBehavior="automatic"
+      automaticallyAdjustKeyboardInsets
+      keyboardDismissMode="interactive"
     />
   );
 }
