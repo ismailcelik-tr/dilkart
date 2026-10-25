@@ -418,6 +418,9 @@ Her iş önce başarısız test, sonra kod (TDD). Katmanlar:
 Her aşama sonunda: testler yeşil → commit + push (isim onayından sonra
 beklemeden). Hesap gereken aşamadan önce senden yeni hesap açman istenir.
 
+Durum (25 Eki 2026): Aşama 0–7 bitti; Aşama 7 prod'a karşı telefonda doğrulandı.
+Sıradaki: Aşama 8.
+
 | # | Aşama | Amaç / işler | Bağımlılık | Bitti sayılır |
 |---|---|---|---|---|
 | 0 | İskele | İsim onayı → `~/Desktop/<ad>`, public repo, pnpm workspace, Expo app, `packages/core`, CI (lint, tsc, Vitest, gitleaks), `docs/plan.md` + ilk ADR'ler | İsim, Expo hesabı **(karar)** | CI yeşil, boş app simülatörde açılır |
@@ -527,6 +530,14 @@ PoC'lerden aşamalara eklenenler (aynı gün onaylandı):
   `kcpwtkzhflsawtipjzcl` (Frankfurt). Misafir verisi dolu hesaba eklenirken aynı adlı desteler
   birleşir; aynı destede aynı kart (aynı sözlük anlamı ya da aynı ön yüz + kullanım etiketi)
   atlanır ve tekrar geçmişi hesaptaki karta aktarılır.
+- **Aşama 7, cihaz testi (25 Eki):** sözlük dışındaki pencereler (yeni deste/kart, yeniden
+  adlandır, taşı, misafir verisi) geri butonlu sayfa; sözlük alttan panel kalır. Ana sayfada
+  açık/koyu görünüm anahtarı (cihaza özel, ilk kareden önce uygulanır); lisanslar "Hakkında"
+  sayfasında. Jest React Compiler ile derler (Metro gibi). Günlük kullanım için telefona
+  release build kurulur (`expo run:ios --configuration Release`); Expo Go geliştirmede kalır.
+- **Aşama 8 (25 Eki):** ana sayfada "Hesap" altında Ayarlar sayfası; koyu görünüm anahtarı
+  oraya taşınır. Zayıf kelimeler ana sayfanın üstünde şerit ("N zayıf kelime: Çalış / Gizle");
+  istatistikler ayrı sayfa.
 - **Aşama 10:** tablolara doğrudan yazma kapatılır, sync RPC'leri
   `SECURITY DEFINER` (ADR 0008).
 - **Aşama 11:** gömülü sözlük paketinin release build'de açılış süresi
