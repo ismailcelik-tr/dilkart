@@ -171,6 +171,8 @@ function TypedCard(props: { card: Card; listen: boolean; onRate: (r: Rating) => 
       </Face>
       <TextInput
         accessibilityLabel="Cevabın"
+        placeholder="İngilizcesini yaz"
+        placeholderTextColor={theme.secondary}
         value={typed}
         onChangeText={setTyped}
         editable={result === undefined}
