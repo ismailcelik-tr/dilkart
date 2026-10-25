@@ -1,6 +1,6 @@
 // One sync round: drain the outbox, then pull past the cursor. Scheduling and
 // retry timing belong to the caller (retryDelay).
-import type { LocalStore, Op, RemoteRow } from "./localStore";
+import type { LocalStore, Op, Pending, RemoteRow } from "./localStore";
 
 export type { RemoteRow };
 
@@ -12,11 +12,31 @@ export const PULL_PAGE = 1_000;
 
 const BASE_DELAY_MS = 1_000;
 const MAX_DELAY_MS = 5 * 60_000;
+// A clock this far ahead would stamp edits that win every later conflict (plan, gate risk R2).
+const MAX_CLOCK_AHEAD_MS = 24 * 60 * 60_000;
 
 export interface RemoteApi {
   /** Applies all ops in one transaction or none. */
   push(ops: Op[], schemaVersion: number): Promise<void>;
   pull(since: number, page: number): Promise<RemoteRow[]>;
+  /** Server wall clock in ms. */
+  serverTime(): Promise<number>;
+}
+
+/** The server rejects this payload for good; retrying the same ops cannot succeed. */
+export class PermanentError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "PermanentError";
+  }
+}
+
+/** Device clock is too far ahead of the server; sync waits until it is corrected. */
+export class ClockAhead extends Error {
+  constructor(readonly aheadMs: number) {
+    super("device clock ahead of server");
+    this.name = "ClockAhead";
+  }
 }
 
 /** Server refused the client schema; keep data local until the app updates. */
@@ -28,7 +48,12 @@ export class UpgradeRequired extends Error {
 }
 
 /** Returns cards whose review logs were pulled; their derived FSRS state is stale. */
-export async function sync(store: LocalStore, remote: RemoteApi): Promise<string[]> {
+export async function sync(store: LocalStore, remote: RemoteApi, now: () => number = Date.now): Promise<string[]> {
+  const ahead = now() - (await remote.serverTime());
+  if (ahead > MAX_CLOCK_AHEAD_MS) {
+    throw new ClockAhead(ahead);
+  }
+
   await push(store, remote);
   return pull(store, remote);
 }
@@ -43,22 +68,33 @@ async function push(store: LocalStore, remote: RemoteApi): Promise<void> {
       return;
     }
 
-    await pushSplit(remote, batch.map((p) => p.op));
+    await pushSplit(store, remote, batch);
     await store.ack(last.seq);
   }
 }
 
-/** Halves a failing batch so one oversized payload does not block the rest. */
-async function pushSplit(remote: RemoteApi, ops: Op[]): Promise<void> {
+/**
+ * Halves a rejected batch until the bad op is alone, then parks it in the failed
+ * queue so it cannot block the outbox (gate risk R1). Outages are retried whole.
+ */
+async function pushSplit(store: LocalStore, remote: RemoteApi, batch: Pending[]): Promise<void> {
   try {
-    await remote.push(ops, SCHEMA_VERSION);
+    await remote.push(
+      batch.map((p) => p.op),
+      SCHEMA_VERSION,
+    );
   } catch (e) {
-    if (e instanceof UpgradeRequired || ops.length === 1) {
+    if (!(e instanceof PermanentError)) {
       throw e;
     }
-    const mid = Math.ceil(ops.length / 2);
-    await pushSplit(remote, ops.slice(0, mid));
-    await pushSplit(remote, ops.slice(mid));
+    const [only] = batch;
+    if (batch.length === 1 && only !== undefined) {
+      await store.fail(only.seq, e.message);
+      return;
+    }
+    const mid = Math.ceil(batch.length / 2);
+    await pushSplit(store, remote, batch.slice(0, mid));
+    await pushSplit(store, remote, batch.slice(mid));
   }
 }
 

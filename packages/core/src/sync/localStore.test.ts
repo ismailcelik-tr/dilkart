@@ -172,7 +172,9 @@ describe("LocalStore migrations", () => {
     const a = new LocalStore(old, NODE);
     await a.open();
     await a.write(Table.Decks, DECK, { name: "eski" });
-    await old.exec("DROP INDEX cards_deck; DROP TABLE recent_searches; DROP INDEX cards_dict_sense; PRAGMA user_version = 1");
+    await old.exec(
+      "DROP INDEX cards_deck; DROP TABLE recent_searches; DROP INDEX cards_dict_sense; DROP TABLE outbox_failed; PRAGMA user_version = 1",
+    );
     old.close();
 
     const db = testDriver(path);

@@ -1,26 +1,54 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { PULL_PAGE, PUSH_BATCH, retryDelay, sync, UpgradeRequired, type RemoteApi, type RemoteRow } from "./engine";
+import {
+  ClockAhead,
+  PermanentError,
+  PULL_PAGE,
+  PUSH_BATCH,
+  retryDelay,
+  sync,
+  UpgradeRequired,
+  type RemoteApi,
+  type RemoteRow,
+} from "./engine";
 import { LocalStore, Table, type Op } from "./localStore";
 import { testDriver } from "./testDriver";
 
 const DECK = "0199c1d2-0000-7000-8000-0000000000d1";
 
+const NOW = Date.parse("2026-10-25T12:00:00Z");
+const DAY = 86_400_000;
+
 class FakeRemote implements RemoteApi {
   pushed: Op[][] = [];
+  pushCalls = 0;
   pulls: number[] = [];
   rows: RemoteRow[] = [];
   failAbove = Infinity;
+  rejectName?: string;
+  outage = false;
   upgrade = false;
+  serverNow = NOW;
 
   async push(ops: Op[]): Promise<void> {
+    this.pushCalls++;
     if (this.upgrade) {
       throw new UpgradeRequired();
     }
+    if (this.outage) {
+      throw new Error("network down");
+    }
     if (ops.length > this.failAbove) {
-      throw new Error("payload too large");
+      throw new PermanentError("payload too large");
+    }
+    if (ops.some((o) => o.values.name === this.rejectName)) {
+      throw new PermanentError("22P02 invalid input");
     }
     this.pushed.push(ops);
+  }
+
+  async serverTime(): Promise<number> {
+    return this.serverNow;
   }
 
   async pull(since: number, page: number): Promise<RemoteRow[]> {
@@ -60,11 +88,40 @@ describe("sync push", () => {
     expect(await store.pending(1)).toEqual([]);
   });
 
-  it("keeps the outbox when every retry fails", async () => {
+  it("retries an outage later without splitting", async () => {
+    await writes(4);
+    remote.outage = true;
+    await expect(sync(store, remote, () => NOW)).rejects.toThrow("network down");
+    expect(remote.pushCalls).toBe(1);
+    expect(await store.pending(10)).toHaveLength(4);
+  });
+
+  it("parks an op the server always rejects and sends the rest", async () => {
+    await writes(5);
+    remote.rejectName = "v2";
+    await sync(store, remote, () => NOW);
+
+    expect(remote.pushed.flat().map((o) => o.values.name)).toEqual(["v0", "v1", "v3", "v4"]);
+    expect(await store.pending(10)).toEqual([]);
+    expect(await store.failed()).toEqual([
+      expect.objectContaining({ op: expect.objectContaining({ values: { name: "v2" } }), error: "22P02 invalid input" }),
+    ]);
+  });
+
+  it("sends nothing while the device clock runs over a day ahead", async () => {
     await writes(2);
-    remote.failAbove = 0;
-    await expect(sync(store, remote)).rejects.toThrow();
+    remote.serverNow = NOW - 2 * DAY;
+    await expect(sync(store, remote, () => NOW)).rejects.toBeInstanceOf(ClockAhead);
+    expect(remote.pushCalls).toBe(0);
+    expect(remote.pulls).toEqual([]);
     expect(await store.pending(10)).toHaveLength(2);
+  });
+
+  it("tolerates a device clock that is behind", async () => {
+    await writes(1);
+    remote.serverNow = NOW + 3 * DAY;
+    await sync(store, remote, () => NOW);
+    expect(await store.pending(10)).toEqual([]);
   });
 
   it("stops at once when an upgrade is required", async () => {

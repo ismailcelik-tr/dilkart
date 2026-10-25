@@ -523,6 +523,10 @@ PoC'lerden aşamalara eklenenler (aynı gün onaylandı):
 - **Aşama 7:** kalıcı hata veren tek işlem `outbox_failed`'a taşınır, kuyruk
   sürer, ayarlarda sayısı görünür; cihaz saati sunucu `Date`'inden >1 gün
   ileriyse sync durur ve uyarı çıkar.
+- **Aşama 7 (25 Eki):** Supabase mevcut hesapta `dilkart` Free org'u, proje
+  `kcpwtkzhflsawtipjzcl` (Frankfurt). Misafir verisi dolu hesaba eklenirken aynı adlı desteler
+  birleşir; aynı destede aynı kart (aynı sözlük anlamı ya da aynı ön yüz + kullanım etiketi)
+  atlanır ve tekrar geçmişi hesaptaki karta aktarılır.
 - **Aşama 10:** tablolara doğrudan yazma kapatılır, sync RPC'leri
   `SECURITY DEFINER` (ADR 0008).
 - **Aşama 11:** gömülü sözlük paketinin release build'de açılış süresi

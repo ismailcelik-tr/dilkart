@@ -44,6 +44,11 @@ export interface Pending {
   op: Op;
 }
 
+export interface Failed extends Pending {
+  error: string;
+  failedAt: string;
+}
+
 export interface RemoteRow {
   seq: number;
   tbl: Table;
@@ -115,6 +120,7 @@ const MIGRATIONS = [
   `CREATE TABLE recent_searches (direction TEXT NOT NULL, key TEXT NOT NULL, query TEXT NOT NULL,
      searched_at TEXT NOT NULL, PRIMARY KEY (direction, key));
    CREATE INDEX cards_dict_sense ON cards (dict_sense_id);`,
+  `CREATE TABLE outbox_failed (seq INTEGER PRIMARY KEY, op TEXT NOT NULL, error TEXT NOT NULL, failed_at TEXT NOT NULL);`,
 ];
 
 export const LOCAL_SCHEMA_VERSION = MIGRATIONS.length;
@@ -256,6 +262,25 @@ export class LocalStore {
       [limit],
     );
     return rows.map((r) => ({ seq: r.seq, op: JSON.parse(r.op) as Op }));
+  }
+
+  /** Moves an op the server will never accept out of the outbox. */
+  async fail(seq: number, error: string): Promise<void> {
+    await this.db.transaction(async (tx) => {
+      await tx.run(
+        "INSERT INTO outbox_failed (seq, op, error, failed_at) SELECT seq, op, ?, ? FROM outbox WHERE seq = ?",
+        [error, new Date(this.now()).toISOString(), seq],
+      );
+      await tx.run("DELETE FROM outbox WHERE seq = ?", [seq]);
+    });
+  }
+
+  async failed(): Promise<Failed[]> {
+    const rows = await this.db.all<{ seq: number; op: string; error: string; failed_at: string }>(
+      "SELECT seq, op, error, failed_at FROM outbox_failed ORDER BY seq",
+      [],
+    );
+    return rows.map((r) => ({ seq: r.seq, op: JSON.parse(r.op) as Op, error: r.error, failedAt: r.failed_at }));
   }
 
   /** Drops ops up to `seq` once the server has applied them. */

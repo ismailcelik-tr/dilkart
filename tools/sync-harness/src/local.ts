@@ -25,6 +25,8 @@ function status(): Record<string, string> {
   return env;
 }
 
+export const apiUrl = () => status().API_URL ?? "";
+
 /** A fresh account with a signed-in client. */
 export async function signUp(): Promise<SupabaseClient> {
   const { API_URL, PUBLISHABLE_KEY } = status();
@@ -51,11 +53,11 @@ export async function device(name: string, client?: SupabaseClient, opts: Device
   const store = new LocalStore(db, name, opts.now);
   await store.open();
 
-  let remote = client && supabaseRemote(client);
+  let remote = client && supabaseRemote(client, apiUrl());
   return {
     store,
     login: (c: SupabaseClient) => {
-      remote = supabaseRemote(c);
+      remote = supabaseRemote(c, apiUrl());
     },
     sync: async () => {
       if (remote === undefined) {

@@ -7,7 +7,7 @@ import { Scheduler, SCHEMA_VERSION, Table, UpgradeRequired, uuidv7 } from "@dilk
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { describe, expect, it } from "vitest";
 
-import { device, signUp } from "./local";
+import { apiUrl, device, signUp } from "./local";
 import { supabaseRemote } from "./remote";
 
 const T0 = 1_761_379_200_000;
@@ -77,7 +77,7 @@ describe("idempotency", () => {
     await a.store.append(uuidv7(), log(card, 3));
 
     const ops = (await a.store.pending(10)).map((p) => p.op);
-    const remote = supabaseRemote(client);
+    const remote = supabaseRemote(client, apiUrl());
     for (let i = 0; i < 5; i++) {
       await remote.push(ops, SCHEMA_VERSION);
     }
@@ -200,9 +200,29 @@ describe("offline", () => {
     await a.store.write(Table.Decks, uuidv7(), { name: "d" });
     const ops = (await a.store.pending(10)).map((p) => p.op);
 
-    await expect(supabaseRemote(client).push(ops, SCHEMA_VERSION - 1)).rejects.toBeInstanceOf(UpgradeRequired);
+    await expect(supabaseRemote(client, apiUrl()).push(ops, SCHEMA_VERSION - 1)).rejects.toBeInstanceOf(UpgradeRequired);
     expect(await serverCount(client, Table.Decks)).toBe(0);
     expect(await a.store.pending(10)).toHaveLength(1);
+  });
+});
+
+describe("failed ops", () => {
+  it("parks an op the server rejects and delivers the rest", async () => {
+    const client = await signUp();
+    const a = await device("a", client);
+    const deck = uuidv7();
+    const card = uuidv7();
+    await a.store.write(Table.Decks, deck, { name: "d" });
+    await a.store.write(Table.Cards, card, { deck_id: deck, front: "go" });
+    await a.store.append(uuidv7(), { ...log(card, 3), rating: "not a number" });
+    await a.store.append(uuidv7(), log(card, 3));
+
+    await a.sync();
+
+    expect(await serverCount(client, Table.Cards)).toBe(1);
+    expect(await serverCount(client, Table.ReviewLogs)).toBe(1);
+    expect(await a.store.pending(10)).toEqual([]);
+    expect(await a.store.failed()).toEqual([expect.objectContaining({ error: expect.stringContaining("22P02") })]);
   });
 });
 
