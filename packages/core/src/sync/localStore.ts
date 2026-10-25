@@ -31,6 +31,14 @@ export interface Op {
   hlc: string;
 }
 
+export type LwwTable = Exclude<Table, Table.ReviewLogs>;
+
+export interface Edit {
+  table: LwwTable;
+  id: string;
+  changes: Values;
+}
+
 export interface Pending {
   seq: number;
   op: Op;
@@ -177,18 +185,25 @@ export class LocalStore {
   }
 
   /** Field-wise edit of a synced row (creates it if missing). */
-  async write(table: Exclude<Table, Table.ReviewLogs>, id: string, changes: Values): Promise<void> {
-    const values = columns(table, changes, true);
-    await this.db.transaction(async (tx) => {
-      const hlc = await this.tick(tx);
-      const clock = (await clocked(tx, table, id))?.clock ?? {};
-      const base = Object.fromEntries(Object.keys(values).map((f) => [f, clock[f] ?? null]));
-      for (const f of Object.keys(values)) {
-        clock[f] = hlc;
-      }
+  write(table: LwwTable, id: string, changes: Values): Promise<void> {
+    return this.writeAll([{ table, id, changes }]);
+  }
 
-      await upsert(tx, table, id, values, clock);
-      await enqueue(tx, { op_id: uuidv7(this.now()), table, row_id: id, values, base, hlc });
+  /** Several edits in one transaction: all apply or none. */
+  async writeAll(edits: Edit[]): Promise<void> {
+    const checked = edits.map((e) => ({ ...e, changes: columns(e.table, e.changes, true) }));
+    await this.db.transaction(async (tx) => {
+      for (const { table, id, changes } of checked) {
+        const hlc = await this.tick(tx);
+        const clock = (await clocked(tx, table, id))?.clock ?? {};
+        const base = Object.fromEntries(Object.keys(changes).map((f) => [f, clock[f] ?? null]));
+        for (const f of Object.keys(changes)) {
+          clock[f] = hlc;
+        }
+
+        await upsert(tx, table, id, changes, clock);
+        await enqueue(tx, { op_id: uuidv7(this.now()), table, row_id: id, values: changes, base, hlc });
+      }
     });
   }
 
@@ -204,6 +219,12 @@ export class LocalStore {
 
   read(table: Table, id: string): Promise<Values | undefined> {
     return readRow(this.db, table, id);
+  }
+
+  /** Rows matching a trusted SQL condition, decoded like `read`. */
+  async select(table: Table, where: string, params: unknown[]): Promise<Values[]> {
+    const rows = await this.db.all<Values>(`SELECT * FROM ${table} WHERE ${where}`, params);
+    return rows.map((row) => decodeRow(table, row));
   }
 
   async pending(limit: number): Promise<Pending[]> {
@@ -277,10 +298,10 @@ async function migrate(db: SqlDriver): Promise<void> {
 
 async function readRow(db: SqlExecutor, table: Table, id: string): Promise<Values | undefined> {
   const [row] = await db.all<Values>(`SELECT * FROM ${table} WHERE id = ?`, [id]);
-  if (row === undefined) {
-    return undefined;
-  }
+  return row === undefined ? undefined : decodeRow(table, row);
+}
 
+function decodeRow(table: Table, row: Values): Values {
   const out: Values = { id: row.id };
   for (const [k, kind] of Object.entries(COLUMNS[table])) {
     out[k] = fromSql(kind, row[k]);

@@ -6,7 +6,7 @@ export { retryDelay, SCHEMA_VERSION, sync, UpgradeRequired } from "./sync/engine
 export type { RemoteApi } from "./sync/engine";
 export { uuidv7 } from "./sync/id";
 export { LocalStore, SETTINGS_ID, Table } from "./sync/localStore";
-export type { Op, RemoteRow, SqlDriver, SqlExecutor } from "./sync/localStore";
+export type { Edit, LwwTable, Op, RemoteRow, SqlDriver, SqlExecutor } from "./sync/localStore";
 export type { Values } from "./sync/merge";
 export { CardError, findDuplicate, validate } from "./card/card";
 export type { CardDraft, Meaning, Validation } from "./card/card";
@@ -21,3 +21,5 @@ export { checkAnswer, Verdict } from "./text/answer";
 export type { Check } from "./text/answer";
 export { dismissUntil, suggestWeak } from "./weak/weak";
 export type { WeakStatus } from "./weak/weak";
+export { DeckError, Library } from "./data/library";
+export type { Card, Deck, Result } from "./data/library";
