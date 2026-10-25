@@ -1,6 +1,6 @@
 # 0002 — Postgres RPC tabanlı kendi senkronizasyonumuz
 
-Durum: Kabul (24 Eki 2026), PoC-B ile doğrulanacak
+Durum: Kabul (24 Eki 2026), PoC-B ile doğrulandı (25 Eki 2026, `docs/poc-b-sync.md`)
 
 **Bağlam:** Çevrimdışı öncelikli; Supabase Free; ek ücretli servis yok.
 
