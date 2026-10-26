@@ -141,6 +141,14 @@ describe("listening", () => {
     await screen.findByLabelText("Cevabın");
     await waitFor(() => expect(speak).toHaveBeenCalledWith("go", expect.objectContaining({ language: "en-US", voice: "us" })));
   });
+
+  it("speaks in silent mode", async () => {
+    await setup();
+    await start("Dinleyip yazma");
+    await waitFor(() =>
+      expect(speak).toHaveBeenCalledWith("go", expect.objectContaining({ useApplicationAudioSession: false })),
+    );
+  });
 });
 
 describe("matching", () => {

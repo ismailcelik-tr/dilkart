@@ -20,5 +20,6 @@ export function pickVoice(voices: Voice[], accent: Accent): Voice | undefined {
 
 export function say(text: string, accent: Accent, voice?: Voice) {
   void stop();
-  speak(text, { language: accent, voice: voice?.identifier });
+  // iOS: the app's own audio session obeys the silent switch; the synthesizer's separate one does not.
+  speak(text, { language: accent, voice: voice?.identifier, useApplicationAudioSession: false });
 }
