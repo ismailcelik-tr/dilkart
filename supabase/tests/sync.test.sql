@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(23);
+select plan(24);
 
 -- lww_merge(cur, clock, incoming, base, hlc)
 select is(
@@ -92,6 +92,8 @@ select is((select count(*) from public.sync_pull((select max(seq) from public.sy
 
 set local request.jwt.claims to '{"sub": "00000000-0000-0000-0000-00000000000b", "role": "authenticated"}';
 select is_empty('select * from public.sync_pull(0, 10)', 'B pulls nothing of A''s');
+
+select has_column('public', 'cards', 'weak_since', 'cards keeps when a card was marked weak');
 
 select * from finish();
 rollback;

@@ -1,10 +1,12 @@
 // What to study now and how answers are recorded; docs/plan.md section 16, items 5 and Aşama 5.
 import type { Card, Library } from "../data/library";
+import { reviewsOf } from "../data/reviews";
 import { Settings } from "../data/settings";
+import { WeakWords } from "../data/weakWords";
 import type { SqlReader } from "../dictionary/lookup";
 import { dayKey, dayStart } from "../fsrs/day";
 import { schedules, type Module, type SessionKind } from "../fsrs/policy";
-import { CardState, Rating, Scheduler, type FsrsState, type Review } from "../fsrs/scheduler";
+import { CardState, Rating, Scheduler, type FsrsState } from "../fsrs/scheduler";
 import { uuidv7 } from "../sync/id";
 import { Table, type LocalStore } from "../sync/localStore";
 
@@ -31,6 +33,7 @@ const deviceOffset = () => -new Date().getTimezoneOffset();
 
 export class Study {
   private readonly scheduler: Scheduler;
+  private readonly weak: WeakWords;
 
   constructor(
     private readonly store: LocalStore,
@@ -41,6 +44,7 @@ export class Study {
     private readonly tzOffsetMin: () => number = deviceOffset,
   ) {
     this.scheduler = new Scheduler();
+    this.weak = new WeakWords(store, library, now);
   }
 
   /** Due learning steps, then reviews (most overdue first) with new cards spread among them. */
@@ -93,6 +97,7 @@ export class Study {
       elapsed_ms: Math.round(elapsedMs),
       scheduled,
     });
+    await this.weak.review(card.id);
     if (!scheduled) {
       return card;
     }
@@ -112,14 +117,7 @@ export class Study {
   /** Rebuilds cached states from logs, e.g. after sync pulled another device's reviews. */
   async refresh(cardIds: string[]): Promise<void> {
     for (const id of cardIds) {
-      const logs = await this.store.select(Table.ReviewLogs, "card_id = ?", [id]);
-      const reviews: Review[] = logs.map((l) => ({
-        id: String(l.id),
-        reviewedAt: String(l.reviewed_at),
-        rating: Number(l.rating),
-        scheduled: l.scheduled !== false,
-      }));
-      await this.store.cacheFsrs(id, this.scheduler.replay(reviews) ?? null);
+      await this.store.cacheFsrs(id, this.scheduler.replay(await reviewsOf(this.store, id)) ?? null);
     }
   }
 

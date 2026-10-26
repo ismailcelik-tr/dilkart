@@ -78,6 +78,7 @@ const COLUMNS: Record<Table, Record<string, Kind>> = {
     dict_entry_id: Kind.Text,
     dict_sense_id: Kind.Text,
     is_weak: Kind.Bool,
+    weak_since: Kind.Text,
     weak_dismissed_until: Kind.Text,
     fsrs_state: Kind.Json,
     deleted_at: Kind.Text,
@@ -121,6 +122,7 @@ const MIGRATIONS = [
      searched_at TEXT NOT NULL, PRIMARY KEY (direction, key));
    CREATE INDEX cards_dict_sense ON cards (dict_sense_id);`,
   `CREATE TABLE outbox_failed (seq INTEGER PRIMARY KEY, op TEXT NOT NULL, error TEXT NOT NULL, failed_at TEXT NOT NULL);`,
+  `ALTER TABLE cards ADD COLUMN weak_since TEXT;`,
 ];
 
 export const LOCAL_SCHEMA_VERSION = MIGRATIONS.length;

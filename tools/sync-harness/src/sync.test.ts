@@ -277,3 +277,20 @@ describe("initial sync", () => {
     10 * 60_000,
   );
 });
+
+describe("weak words", () => {
+  it("carries the weak mark and its time to the other device", async () => {
+    const { client, clock, web, phone, card } = await twoDevices();
+    clock.advance();
+    const since = new Date(clock.now()).toISOString();
+    await web.store.write(Table.Cards, card, { is_weak: true, weak_since: since });
+    await web.sync();
+    await phone.sync();
+
+    const local = await phone.store.read(Table.Cards, card);
+    expect(local?.is_weak).toBe(true);
+    expect(Date.parse(String(local?.weak_since))).toBe(Date.parse(since));
+    const [remote] = await server(client, Table.Cards, "weak_since");
+    expect(Date.parse(String(remote?.weak_since))).toBe(Date.parse(since));
+  });
+});

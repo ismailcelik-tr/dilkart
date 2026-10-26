@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { Rating, type Review } from "../fsrs/scheduler";
-import { dismissUntil, suggestWeak } from "./weak";
+import { dismissUntil, recovered, suggestWeak } from "./weak";
 
 const NOW = Date.parse("2026-10-25T06:00:00Z");
 const MIN = 60_000;
@@ -74,5 +74,25 @@ describe("suggestWeak", () => {
 
   it("dismisses for 14 days", () => {
     expect(dismissUntil(new Date(NOW).toISOString())).toBe(new Date(NOW + 14 * DAY).toISOString());
+  });
+});
+
+describe("recovered", () => {
+  const SINCE = new Date(NOW - 5 * DAY).toISOString();
+  const goodBefore = () => [review(10 * DAY, Rating.Good), review(9 * DAY, Rating.Good), review(8 * DAY, Rating.Good)];
+
+  it("needs three correct answers after the mark", () => {
+    expect(recovered([...goodBefore(), review(2 * DAY, Rating.Good)], SINCE)).toBe(false);
+    const after = [review(3 * DAY, Rating.Good), review(2 * DAY, Rating.Hard), review(DAY, Rating.Good)];
+    expect(recovered([...goodBefore(), ...after], SINCE)).toBe(true);
+  });
+
+  it("restarts the count after an error", () => {
+    const after = [review(4 * DAY, Rating.Good), review(3 * DAY, Rating.Good), review(2 * DAY, Rating.Again), review(DAY, Rating.Good)];
+    expect(recovered(after, SINCE)).toBe(false);
+  });
+
+  it("counts every answer when the mark time is unknown", () => {
+    expect(recovered([review(3 * DAY, Rating.Good), review(2 * DAY, Rating.Good), review(DAY, Rating.Good)])).toBe(true);
   });
 });

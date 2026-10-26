@@ -173,7 +173,8 @@ describe("LocalStore migrations", () => {
     await a.open();
     await a.write(Table.Decks, DECK, { name: "eski" });
     await old.exec(
-      "DROP INDEX cards_deck; DROP TABLE recent_searches; DROP INDEX cards_dict_sense; DROP TABLE outbox_failed; PRAGMA user_version = 1",
+      "DROP INDEX cards_deck; DROP TABLE recent_searches; DROP INDEX cards_dict_sense; DROP TABLE outbox_failed; " +
+        "ALTER TABLE cards DROP COLUMN weak_since; PRAGMA user_version = 1",
     );
     old.close();
 

@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import { Library } from "../data/library";
 import { Settings, type UserSettings } from "../data/settings";
+import { WeakWords } from "../data/weakWords";
 import { Module, SessionKind } from "../fsrs/policy";
 import { CardState, Rating } from "../fsrs/scheduler";
 import { LocalStore, Table } from "../sync/localStore";
@@ -192,5 +193,25 @@ describe("Session", () => {
       await session.answer(Rating.Again, 1_000);
     }
     expect(session.current()).toBeUndefined();
+  });
+});
+
+describe("Study.answer and weak words", () => {
+  const WEAK = { session: SessionKind.Weak, module: Module.Recall };
+
+  it("clears the weak mark after three correct answers without touching the schedule", async () => {
+    study = await setup();
+    const [id = ""] = await cards(1);
+    await new WeakWords(store, lib, () => now).decide([id], []);
+
+    for (let i = 0; i < 3; i++) {
+      now += MIN;
+      expect((await lib.card(id))?.isWeak).toBe(true);
+      await study.answer(await cardOf(id), Rating.Good, WEAK, 1_000);
+    }
+
+    const card = await lib.card(id);
+    expect(card?.isWeak).toBe(false);
+    expect(card?.fsrs).toBeUndefined();
   });
 });
