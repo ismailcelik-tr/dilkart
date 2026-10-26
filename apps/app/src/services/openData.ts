@@ -1,4 +1,4 @@
-import { Library, LocalStore, RecentSearches, Study, type SqlReader } from "@dilkart/core";
+import { Library, LocalStore, RecentSearches, Settings, Study, type SqlReader } from "@dilkart/core";
 import { deleteDatabaseAsync, importDatabaseFromAssetAsync, openDatabaseAsync } from "expo-sqlite";
 
 import { sqlDriver } from "@/drivers/sqlDriver";
@@ -14,6 +14,7 @@ export interface AppData {
   /** Database file name. */
   name: string;
   library: Library;
+  settings: Settings;
   study: Study;
   recent: RecentSearches;
   store: LocalStore;
@@ -39,12 +40,13 @@ export async function openData(name: string = GUEST_DB): Promise<AppData> {
   const store = new LocalStore(driver);
   await store.open();
   const library = new Library(store, driver);
+  const settings = new Settings(store);
   let closed = false;
   return {
     name,
     library,
-    // Settings screen arrives in stage 8; until then study uses the defaults.
-    study: new Study(store, library, driver),
+    settings,
+    study: new Study(store, library, driver, settings),
     recent: new RecentSearches(driver),
     store,
     dictionary: openDictionary,

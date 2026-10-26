@@ -1,9 +1,5 @@
+import type { Accent } from "@dilkart/core";
 import { getAvailableVoicesAsync, speak, stop, VoiceQuality, type Voice } from "expo-speech";
-
-export enum Accent {
-  US = "en-US",
-  GB = "en-GB",
-}
 
 // Android reports "en_US".
 const languageOf = (v: Voice) => v.language.replace("_", "-").toLowerCase();

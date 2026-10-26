@@ -1,8 +1,7 @@
 import { fireEvent, renderRouter, screen } from "expo-router/testing-library";
-import { Alert, Appearance, type AlertButton } from "react-native";
+import { Alert, type AlertButton } from "react-native";
 
 import { openData } from "@/services/openData";
-import { savedScheme } from "@/services/prefs";
 import type { Library } from "@dilkart/core";
 
 import { testData } from "./testData";
@@ -82,13 +81,15 @@ describe("decks", () => {
 });
 
 describe("deck list", () => {
-  it("switches to dark appearance and remembers it", async () => {
-    const apply = jest.spyOn(Appearance, "setColorScheme");
+  it("puts study and new deck above the decks, the rest below", async () => {
+    await lib.createDeck("Fiiller");
     await renderRouter(APP, { initialUrl: "/" });
-    await fireEvent(await screen.findByLabelText("Koyu görünüm"), "valueChange", true);
+    await screen.findByText("Fiiller");
 
-    expect(apply).toHaveBeenCalledWith("dark");
-    expect(savedScheme()).toBe("dark");
+    const order = screen
+      .getAllByText(/^(Tümünü çalış|Yeni deste|Fiiller|Hesap|Ayarlar|Hakkında)$/)
+      .map((t) => t.props.children);
+    expect(order).toEqual(["Tümünü çalış", "Yeni deste", "Fiiller", "Hesap", "Ayarlar", "Hakkında"]);
   });
 
   it("covers the swipe action with an opaque row", async () => {

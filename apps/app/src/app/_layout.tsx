@@ -69,6 +69,8 @@ export default function RootLayout() {
               }}
             />
             <Stack.Screen name="about/index" options={{ title: "Hakkında" }} />
+            <Stack.Screen name="settings/index" options={{ title: "Ayarlar" }} />
+            <Stack.Screen name="settings/choose" options={{ title: "" }} />
             <Stack.Screen name="account/index" options={{ title: "Hesap" }} />
             <Stack.Screen
               name="account/sign-up"

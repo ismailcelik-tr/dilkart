@@ -61,9 +61,19 @@ export function ListScreen<T>(props: {
   );
 }
 
-export function Group({ children }: { children: ReactNode }) {
+export function Group({ title, children }: { title?: string; children: ReactNode }) {
   const theme = useTheme();
-  return <View style={[styles.group, { backgroundColor: theme.surface }]}>{children}</View>;
+  const group = <View style={[styles.group, { backgroundColor: theme.surface }]}>{children}</View>;
+  if (title === undefined) {
+    return group;
+  }
+
+  return (
+    <View style={styles.field}>
+      <Text style={[styles.caption, styles.groupTitle, { color: theme.secondary }]}>{title}</Text>
+      {group}
+    </View>
+  );
 }
 
 export function Row(props: { title: string; subtitle?: string; selected?: boolean; onPress: () => void }) {
@@ -198,6 +208,7 @@ const styles = StyleSheet.create({
   list: { paddingVertical: SPACE },
   bar: { padding: SPACE, gap: SPACE },
   group: { borderRadius: RADIUS, overflow: "hidden" },
+  groupTitle: { paddingHorizontal: SPACE },
   row: {
     paddingHorizontal: SPACE,
     paddingVertical: 12,

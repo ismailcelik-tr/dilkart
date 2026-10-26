@@ -1,4 +1,4 @@
-import { CardState, DEFAULT_SETTINGS, Rating, Table, type StudySettings } from "@dilkart/core";
+import { Accent, CardState, Rating, Table, type UserSettings } from "@dilkart/core";
 import { getAvailableVoicesAsync, speak, VoiceQuality } from "expo-speech";
 import { fireEvent, renderRouter, screen, waitFor } from "expo-router/testing-library";
 
@@ -22,11 +22,12 @@ const WORDS: [string, string][] = [
   ["eat", "yemek"],
 ];
 const US_VOICE = { identifier: "us", name: "Samantha", quality: VoiceQuality.Default, language: "en-US" };
+const GB_VOICE = { identifier: "gb", name: "Daniel", quality: VoiceQuality.Default, language: "en-GB" };
 
 let data: Awaited<ReturnType<typeof testData>>;
 let deckId: string;
 
-async function setup(words = WORDS, settings: StudySettings = DEFAULT_SETTINGS) {
+async function setup(words = WORDS, settings: Partial<UserSettings> = {}) {
   data = await testData(settings);
   jest.mocked(openData).mockResolvedValue(data);
   const deck = await data.library.createDeck("Fiiller");
@@ -62,7 +63,7 @@ describe("study start", () => {
   });
 
   it("offers practice when nothing is due", async () => {
-    const [go = ""] = await setup(WORDS, { ...DEFAULT_SETTINGS, newPerDay: 0 });
+    const [go = ""] = await setup(WORDS, { newPerDay: 0 });
     await renderRouter(APP, { initialUrl: `/study?deckId=${deckId}` });
     expect(await screen.findByText("Bugünlük bitti")).toBeOnTheScreen();
     await fireEvent.press(screen.getByText("Serbest çalış"));
@@ -140,6 +141,14 @@ describe("listening", () => {
     await start("Dinleyip yazma");
     await screen.findByLabelText("Cevabın");
     await waitFor(() => expect(speak).toHaveBeenCalledWith("go", expect.objectContaining({ language: "en-US", voice: "us" })));
+  });
+
+  it("speaks with the chosen accent", async () => {
+    jest.mocked(getAvailableVoicesAsync).mockResolvedValue([US_VOICE, GB_VOICE]);
+    await setup(WORDS, { accent: Accent.GB });
+    await start("Dinleyip yazma");
+    await waitFor(() => expect(speak).toHaveBeenCalledWith("go", expect.objectContaining({ language: "en-GB", voice: "gb" })));
+    expect(speak).not.toHaveBeenCalledWith("go", expect.objectContaining({ language: "en-US" }));
   });
 
   it("speaks in silent mode", async () => {

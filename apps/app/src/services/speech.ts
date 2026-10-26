@@ -1,22 +1,25 @@
+import { DEFAULT_SETTINGS, type Accent } from "@dilkart/core";
 import type { Voice } from "expo-speech";
 import { useEffect, useState } from "react";
 
-import { Accent, englishVoices, pickVoice, say } from "@/drivers/speech";
+import { englishVoices, pickVoice, say } from "@/drivers/speech";
 
-// user_settings.tts_accent becomes editable in stage 8.
-const DEFAULT_ACCENT = Accent.US;
+import { useSettings } from "./library";
 
-/** `available` is undefined until the voice list loads. */
-export function useSpeech(accent: Accent = DEFAULT_ACCENT) {
-  const [voices, setVoices] = useState<Voice[]>();
+/** `available` is undefined until the voice list and the accent load. */
+export function useSpeech() {
+  const settings = useSettings();
+  const [loaded, setLoaded] = useState<{ voices: Voice[]; accent: Accent }>();
 
   useEffect(() => {
-    englishVoices().then(setVoices, () => setVoices([]));
-  }, []);
+    const voices = englishVoices().catch((): Voice[] => []);
+    void Promise.all([voices, settings.get()]).then(([v, s]) => setLoaded({ voices: v, accent: s.accent }));
+  }, [settings]);
 
-  const voice = voices && pickVoice(voices, accent);
+  const accent = loaded?.accent ?? DEFAULT_SETTINGS.accent;
+  const voice = loaded && pickVoice(loaded.voices, accent);
   return {
-    available: voices === undefined ? undefined : voices.length > 0,
+    available: loaded === undefined ? undefined : loaded.voices.length > 0,
     speak: (text: string) => say(text, accent, voice),
   };
 }

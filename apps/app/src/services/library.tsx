@@ -1,4 +1,4 @@
-import { adoptGuest, rpcRemote, type Library, type Study } from "@dilkart/core";
+import { adoptGuest, rpcRemote, type Library, type Settings, type Study } from "@dilkart/core";
 import type { Session, SupabaseClient } from "@supabase/supabase-js";
 import { router, useFocusEffect } from "expo-router";
 import { Storage } from "expo-sqlite/kv-store";
@@ -185,6 +185,13 @@ function useData(): AppData {
 
 export const useLibrary = (): Library => useData().library;
 export const useStudy = (): Study => useData().study;
+export const useSettings = (): Settings => useData().settings;
+
+/** Changes the server rejected for good (plan section 16, Aşama 7). Only signed-in use syncs. */
+export function useFailedCount(): () => Promise<number> {
+  const { store } = useData();
+  return useCallback(async () => (await store.counts()).failed, [store]);
+}
 export const useDictionary = () => {
   const { dictionary, recent } = useData();
   return { dictionary, recent };
