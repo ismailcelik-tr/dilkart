@@ -93,7 +93,7 @@ supabase-js). UI hiçbir zaman sürücüye doğrudan gitmez.
 | Sözlük build | **Python (uv) ETL betikleri** | Büyük JSONL işleme; backend/AI rotana uygun | Node (aynı dil ama veri işleme ekosistemi zayıf) |
 | Mobil build | **EAS Build (Free: ayda 15 iOS)** + gerektiğinde `eas build --local` | TestFlight'a `eas submit`; kota yeterli | Yalnız Xcode (imza/upload el işi) |
 | OTA | EAS Update (Free: 1.000 MAU) | Sadece JS düzeltmeleri; TestFlight'ta yeter | — |
-| Hata gözlemi | Sentry Developer (5k hata/ay, 1 kullanıcı) **[V: kart istemiyor mu]** | RN + web desteği | — |
+| Hata gözlemi | **Yok** (26 Eki 2026) | İhtiyaç görülmedi | Sentry Developer |
 | E2E | **Maestro** (açık kaynak CLI) | YAML akışları, iOS simülatör; public repoda macOS runner ücretsiz | Detox (kurulum ağır) |
 
 ## 5. Repo yapısı
@@ -354,7 +354,7 @@ yalnız `app_config` okur):
   Fly secret gerekmiyor.
 - **Dağıtım:** `main`'e merge → CI yeşil → `flyctl deploy --remote-only`
   (GitHub Actions). Geri dönüş: `fly releases` + önceki imaj.
-- **Log/gözlem:** `fly logs`; uygulama hataları Sentry (mobil + web).
+- **Log/gözlem:** `fly logs`; uygulama hata takibi yok (bölüm 16, madde 2).
 - **Mobil ayrı hat:** EAS Build → `eas submit` → TestFlight. `appVersion`
   semver, build numarası EAS tarafından artırılır. JS düzeltmeleri EAS Update.
 - **Taşınma yolu:** Fly muafiyeti biterse aynı `dist/` Cloudflare Pages'e;
@@ -434,7 +434,7 @@ Sıradaki: Aşama 8.
 | 7 | Hesap + sync | **Supabase `dilkart` org + prod projesi** (mevcut hesap, Free), Gmail SMTP, OTP akışları, misafir bağlama, sync servisi, çıkış | 2, 4 | Auth + sync kriterleri (prod'a karşı duman testi) |
 | 8 | Kişiselleştirme | Zayıf kelimeler, istatistik ekranı, ayarlar, yerel hatırlatmalar | 5 | İlgili kriterler |
 | 9 | Web | Web rotaları: auth, deste/kart yönetimi, hesap silme, dışa aktarma; **yeni Fly.io hesabı**, Dockerfile, deploy workflow | 7 | Web → mobil kriteri, Fly'da canlı |
-| 10 | Güvenlik ve operasyon | pgTAP tam set, `delete-account`, private yedek reposu + geri yükleme provası, Sentry, Maestro E2E | 7, 9 | Güvenlik + yedek kriterleri |
+| 10 | Güvenlik ve operasyon | pgTAP tam set, `delete-account`, private yedek reposu + geri yükleme provası, Maestro E2E | 7, 9 | Güvenlik + yedek kriterleri |
 | 11 | TestFlight | Gizlilik politikası + KVKK sayfası (web), App Privacy beyanı, Beta App Review, demo hesap | 10 | İlk harici TestFlight build'i yayında |
 | 12 | Sonra | App Store (alan adı, işlem e-postası, Turnstile), Android mağaza kararı | 11 | — |
 
@@ -480,7 +480,7 @@ Marka tescili kontrol edilmedi **[V]**.
 
 1. ~~İsim~~ → **dilkart** (24 Eki).
 2. ~~Expo / Sentry hesabı~~ → Expo: mevcut hesap (`eas login` EAS gerektiğinde);
-   Sentry: Aşama 10 öncesi yeni hesap.
+   Sentry: kullanılmıyor (26 Eki 2026).
 3. ~~Kod lisansı~~ → **MIT**. Sözlük paketi CC BY-SA 4.0.
 Karar kapısı 25 Eki 2026'da geçildi (4–11 onaylandı):
 
@@ -576,4 +576,3 @@ PoC'lerden aşamalara eklenenler (aynı gün onaylandı):
   https://fly.io/docs/about/free-trial/ , https://community.fly.io/t/billing-for-small-applications/24434
 - Expo fiyat: https://expo.dev/pricing
 - Gmail SMTP sınırları (ikincil): https://developer.nylas.com/docs/cookbook/email/gmail-smtp-settings
-- Sentry ücretsiz plan (ikincil): https://apicostcalc.com/es/sentry.html
