@@ -70,6 +70,15 @@ describe("decks", () => {
     expect(await screen.findByText("Deste oluştur")).toBeOnTheScreen();
     expect(await lib.card(cardId)).toBeUndefined();
   });
+
+  it("puts study and add above the cards, the rest below", async () => {
+    const { deckId } = await deckWithCard();
+    await renderRouter(APP, { initialUrl: `/deck/${deckId}` });
+    await screen.findByText("go");
+
+    const order = screen.getAllByText(/^(Çalış|Kart ekle|go|Yeniden adlandır|Desteyi sil)$/).map((t) => t.props.children);
+    expect(order).toEqual(["Çalış", "Kart ekle", "go", "Yeniden adlandır", "Desteyi sil"]);
+  });
 });
 
 describe("deck list", () => {

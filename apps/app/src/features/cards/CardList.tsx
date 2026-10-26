@@ -7,9 +7,11 @@ import { ListScreen, Row } from "@/ui/components";
 export function CardList(props: {
   cards: Card[];
   empty?: ReactElement;
+  header?: ReactElement;
   footer?: ReactElement;
   onContentSizeChange?: () => void;
 }) {
+  const empty = props.cards.length === 0 ? props.empty : undefined;
   return (
     <ListScreen
       data={props.cards}
@@ -21,7 +23,14 @@ export function CardList(props: {
           onPress={() => router.push(`/card/${c.id}`)}
         />
       )}
-      header={props.cards.length === 0 ? props.empty : undefined}
+      header={
+        props.header || empty ? (
+          <>
+            {props.header}
+            {empty}
+          </>
+        ) : undefined
+      }
       footer={props.footer}
       onContentSizeChange={props.onContentSizeChange}
     />

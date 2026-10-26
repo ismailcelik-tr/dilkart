@@ -32,7 +32,7 @@ export function DeckScreen({ deckId }: { deckId: string }) {
       <CardList
         cards={cards}
         empty={<Empty text="Bu destede kart yok" />}
-        footer={
+        header={
           <>
             <Button
               title="Çalış"
@@ -43,6 +43,10 @@ export function DeckScreen({ deckId }: { deckId: string }) {
               title="Kart ekle"
               onPress={() => router.push({ pathname: "/card/new", params: { deckId } })}
             />
+          </>
+        }
+        footer={
+          <>
             <Button title="Yeniden adlandır" onPress={() => router.push(`/deck/${deckId}/rename`)} />
             <Button title="Desteyi sil" kind={ButtonKind.Danger} onPress={remove} />
           </>

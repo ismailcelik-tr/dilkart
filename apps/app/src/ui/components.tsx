@@ -51,8 +51,8 @@ export function ListScreen<T>(props: {
       data={props.data}
       keyExtractor={props.keyOf}
       renderItem={({ item }) => <View style={{ backgroundColor: theme.surface }}>{props.render(item)}</View>}
-      ListHeaderComponent={props.header}
-      ListFooterComponent={props.footer && <View style={styles.footer}>{props.footer}</View>}
+      ListHeaderComponent={props.header && <View style={styles.bar}>{props.header}</View>}
+      ListFooterComponent={props.footer && <View style={styles.bar}>{props.footer}</View>}
       onContentSizeChange={props.onContentSizeChange}
       style={{ backgroundColor: theme.background }}
       contentContainerStyle={styles.list}
@@ -196,7 +196,7 @@ export function Empty({ text }: { text: string }) {
 const styles = StyleSheet.create({
   screen: { padding: SPACE, gap: SPACE },
   list: { paddingVertical: SPACE },
-  footer: { padding: SPACE, gap: SPACE },
+  bar: { padding: SPACE, gap: SPACE },
   group: { borderRadius: RADIUS, overflow: "hidden" },
   row: {
     paddingHorizontal: SPACE,
