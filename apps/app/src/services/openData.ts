@@ -1,4 +1,4 @@
-import { Library, LocalStore, RecentSearches, Settings, Study, type SqlReader } from "@dilkart/core";
+import { Library, LocalStore, RecentSearches, Settings, Study, WeakWords, type SqlReader } from "@dilkart/core";
 import { deleteDatabaseAsync, importDatabaseFromAssetAsync, openDatabaseAsync } from "expo-sqlite";
 
 import { sqlDriver } from "@/drivers/sqlDriver";
@@ -16,6 +16,7 @@ export interface AppData {
   library: Library;
   settings: Settings;
   study: Study;
+  weak: WeakWords;
   recent: RecentSearches;
   store: LocalStore;
   /** Opened on first use: the first copy of the 106 MB pack should not delay app start. */
@@ -47,6 +48,7 @@ export async function openData(name: string = GUEST_DB): Promise<AppData> {
     library,
     settings,
     study: new Study(store, library, driver, settings),
+    weak: new WeakWords(store, library),
     recent: new RecentSearches(driver),
     store,
     dictionary: openDictionary,

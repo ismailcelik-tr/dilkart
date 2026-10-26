@@ -1,17 +1,30 @@
 import { router } from "expo-router";
 import { useCallback } from "react";
 
-import { useLibrary, useLoad } from "@/services/library";
+import { WeakStrip } from "@/features/weak/WeakStrip";
+import { useLibrary, useLoad, useWeakWords } from "@/services/library";
 import { Button, ButtonKind, Empty, Group, Row, Screen, SwipeToDelete } from "@/ui/components";
 
 import { confirmRemoveDeck } from "./removeDeck";
 
 export function DeckListScreen() {
   const lib = useLibrary();
-  const [decks, reload] = useLoad(useCallback((l) => l.decks(), []));
-  if (decks === undefined) {
+  const weak = useWeakWords();
+  const [data, reload] = useLoad(
+    useCallback(
+      async (l) => ({
+        decks: await l.decks(),
+        weak: (await weak.cards()).length,
+        suggested: (await weak.suggestions()).length,
+      }),
+      [weak],
+    ),
+  );
+  if (data === undefined) {
     return null;
   }
+
+  const { decks } = data;
 
   return (
     <Screen>
@@ -22,6 +35,7 @@ export function DeckListScreen() {
         </>
       ) : (
         <>
+          <WeakStrip weak={data.weak} suggested={data.suggested} />
           <Button title="Tümünü çalış" kind={ButtonKind.Primary} onPress={() => router.push("/study")} />
           <Button title="Yeni deste" onPress={() => router.push("/deck/new")} />
           <Group>

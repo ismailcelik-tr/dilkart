@@ -3,16 +3,19 @@ import { router } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
-import { useLibrary, useStudy } from "@/services/library";
+import { useLibrary, useStudy, useWeakWords } from "@/services/library";
 import { Button, ButtonKind, Empty, Screen } from "@/ui/components";
 import { RADIUS, SPACE, useTheme } from "@/ui/theme";
+
+import { practiceCards } from "./cards";
 
 const PRACTICE = { session: SessionKind.Free, module: Module.Match };
 
 type Side = "left" | "right";
 
-export function MatchScreen({ deckId }: { deckId?: string }) {
+export function MatchScreen({ deckId, kind }: { deckId?: string; kind: SessionKind }) {
   const lib = useLibrary();
+  const weak = useWeakWords();
   const study = useStudy();
   const [cards, setCards] = useState<Map<string, Card>>();
   const [round, setRound] = useState<MatchRound>();
@@ -27,12 +30,12 @@ export function MatchScreen({ deckId }: { deckId?: string }) {
 
   useEffect(() => {
     (async () => {
-      const list = deckId === undefined ? await lib.allCards() : await lib.cards(deckId);
+      const list = await practiceCards(lib, weak, kind, deckId);
       const all = new Map(list.map((c) => [c.id, c]));
       setCards(all);
       newRound(all);
     })();
-  }, [lib, deckId, newRound]);
+  }, [lib, weak, kind, deckId, newRound]);
 
   if (cards === undefined) {
     return null;

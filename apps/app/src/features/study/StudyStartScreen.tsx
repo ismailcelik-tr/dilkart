@@ -3,29 +3,31 @@ import { router } from "expo-router";
 import { useCallback, useState } from "react";
 
 import { lastModule, rememberModule } from "@/services/prefs";
-import { useLoad, useStudy } from "@/services/library";
+import { useLoad, useStudy, useWeakWords } from "@/services/library";
 import { useSpeech } from "@/services/speech";
 import { Button, ButtonKind, Empty, ErrorText, Group, Row, Screen } from "@/ui/components";
 
+import { practiceCards } from "./cards";
 import { MODULE_NAMES, MODULES } from "./modules";
 
 const NO_VOICE =
   "Cihazda İngilizce ses yok. Ayarlar > Erişilebilirlik > Seslendirilen İçerik > Sesler'den bir İngilizce ses indirin.";
 
 /** `deckId` undefined means every deck. */
-export function StudyStartScreen({ deckId }: { deckId?: string }) {
+export function StudyStartScreen({ deckId, weak = false }: { deckId?: string; weak?: boolean }) {
   const study = useStudy();
+  const weakWords = useWeakWords();
   const speech = useSpeech();
   const [picked, setPicked] = useState<Module>();
 
   const [data] = useLoad(
     useCallback(
       async (lib) => ({
-        plan: await study.plan(deckId),
+        plan: weak ? undefined : await study.plan(deckId),
         saved: await lastModule(),
-        cardCount: (deckId === undefined ? await lib.allCards() : await lib.cards(deckId)).length,
+        cardCount: (await practiceCards(lib, weakWords, weak ? SessionKind.Weak : SessionKind.Free, deckId)).length,
       }),
-      [study, deckId],
+      [study, weakWords, deckId, weak],
     ),
   );
   if (data === undefined) {
@@ -57,11 +59,34 @@ export function StudyStartScreen({ deckId }: { deckId?: string }) {
     }
   };
 
-  const { counts } = data.plan;
-  const nothingDue = data.plan.cards.length === 0;
+  const { plan } = data;
+  const summary =
+    plan === undefined
+      ? `Zayıf ${data.cardCount}`
+      : `Yeni ${plan.counts.new} · Tekrar ${plan.counts.review} · Öğrenme ${plan.counts.learning}`;
+
+  const start = () => {
+    if (plan === undefined) {
+      return data.cardCount === 0 ? (
+        <Empty text="Zayıf kelime yok" />
+      ) : (
+        <Button title="Başla" kind={ButtonKind.Primary} onPress={() => go(SessionKind.Weak)} />
+      );
+    }
+    if (plan.cards.length === 0 && module !== Module.Match) {
+      return (
+        <>
+          <Empty text="Bugünlük bitti" />
+          <Button title="Serbest çalış" kind={ButtonKind.Primary} onPress={() => go(SessionKind.Free)} />
+        </>
+      );
+    }
+    return <Button title="Başla" kind={ButtonKind.Primary} onPress={() => go(SessionKind.Review)} />;
+  };
+
   return (
     <Screen>
-      <Empty text={`Yeni ${counts.new} · Tekrar ${counts.review} · Öğrenme ${counts.learning}`} />
+      <Empty text={summary} />
       <Group>
         {MODULES.map((m) => (
           <Row
@@ -76,14 +101,7 @@ export function StudyStartScreen({ deckId }: { deckId?: string }) {
       {Object.values(blocked).map((reason) => (
         <ErrorText key={reason} text={reason} />
       ))}
-      {nothingDue && module !== Module.Match ? (
-        <>
-          <Empty text="Bugünlük bitti" />
-          <Button title="Serbest çalış" kind={ButtonKind.Primary} onPress={() => go(SessionKind.Free)} />
-        </>
-      ) : (
-        <Button title="Başla" kind={ButtonKind.Primary} onPress={() => go(SessionKind.Review)} />
-      )}
+      {start()}
     </Screen>
   );
 }

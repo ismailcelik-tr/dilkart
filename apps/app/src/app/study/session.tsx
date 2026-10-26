@@ -5,6 +5,6 @@ import { StudySessionScreen } from "@/features/study/StudySessionScreen";
 
 export default function StudySession() {
   const p = useLocalSearchParams<{ deckId?: string; module: string; kind: string }>();
-  const kind = p.kind === SessionKind.Free ? SessionKind.Free : SessionKind.Review;
+  const kind = Object.values(SessionKind).find((k) => k === p.kind) ?? SessionKind.Review;
   return <StudySessionScreen deckId={p.deckId} module={Number(p.module) as Module} kind={kind} />;
 }

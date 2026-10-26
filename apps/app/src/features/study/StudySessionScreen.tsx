@@ -3,12 +3,13 @@ import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import { StyleSheet, Text, TextInput, View } from "react-native";
 
-import { useLibrary, useStudy } from "@/services/library";
+import { useLibrary, useStudy, useWeakWords } from "@/services/library";
 import { useSpeech } from "@/services/speech";
 import { Button, ButtonKind, Empty, Screen } from "@/ui/components";
 import { intervalLabel } from "@/ui/format";
 import { RADIUS, SPACE, useTheme } from "@/ui/theme";
 
+import { practiceCards } from "./cards";
 import { RATING_NAMES, RATINGS } from "./modules";
 
 const VERDICT_NAMES: Record<Verdict, string> = {
@@ -34,6 +35,7 @@ export function StudySessionScreen(props: { deckId?: string; module: Module; kin
   const { deckId, module, kind } = props;
   const study = useStudy();
   const lib = useLibrary();
+  const weak = useWeakWords();
   // Session mutates in place; React Compiler memoizes by reference, so render from a fresh snapshot.
   const [view, setView] = useState<SessionView>();
 
@@ -42,10 +44,10 @@ export function StudySessionScreen(props: { deckId?: string; module: Module; kin
       const cards =
         kind === SessionKind.Review
           ? (await study.plan(deckId)).cards
-          : shuffle(deckId === undefined ? await lib.allCards() : await lib.cards(deckId));
+          : shuffle(await practiceCards(lib, weak, kind, deckId));
       setView(snapshot(new Session(cards, study, { session: kind, module })));
     })();
-  }, [study, lib, deckId, module, kind]);
+  }, [study, lib, weak, deckId, module, kind]);
 
   if (view === undefined) {
     return null;
