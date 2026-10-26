@@ -418,8 +418,8 @@ Her iş önce başarısız test, sonra kod (TDD). Katmanlar:
 Her aşama sonunda: testler yeşil → commit + push (isim onayından sonra
 beklemeden). Hesap gereken aşamadan önce senden yeni hesap açman istenir.
 
-Durum (25 Eki 2026): Aşama 0–7 bitti; Aşama 7 prod'a karşı telefonda doğrulandı.
-Sıradaki: Aşama 8.
+Durum (26 Eki 2026): Aşama 0–7 bitti; Aşama 8'de Ayarlar sayfası bitti.
+Sıradaki: zayıf kelime şeridi.
 
 | # | Aşama | Amaç / işler | Bağımlılık | Bitti sayılır |
 |---|---|---|---|---|
@@ -538,6 +538,10 @@ PoC'lerden aşamalara eklenenler (aynı gün onaylandı):
 - **Aşama 8 (25 Eki):** ana sayfada "Hesap" altında Ayarlar sayfası; koyu görünüm anahtarı
   oraya taşınır. Zayıf kelimeler ana sayfanın üstünde şerit ("N zayıf kelime: Çalış / Gizle");
   istatistikler ayrı sayfa.
+- **Aşama 8, Ayarlar (26 Eki):** limit, gün başlangıcı ve aksan `user_settings`'te (sync);
+  ayarlar her kullanımda veritabanından okunur; misafir ayarları hesaba yalnız boş alanlara
+  taşınır; gönderilemeyen değişiklik sayısı yalnız > 0 iken görünür. Ana sayfada çalış ve yeni
+  deste üstte. Ayrıntı: `docs/superpowers/specs/2026-10-26-settings-design.md`.
 - **Aşama 10:** tablolara doğrudan yazma kapatılır, sync RPC'leri
   `SECURITY DEFINER` (ADR 0008).
 - **Aşama 11:** gömülü sözlük paketinin release build'de açılış süresi
