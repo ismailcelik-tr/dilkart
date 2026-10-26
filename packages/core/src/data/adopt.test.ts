@@ -4,6 +4,7 @@ import { LocalStore, Table } from "../sync/localStore";
 import { testDriver } from "../sync/testDriver";
 import { adoptGuest } from "./adopt";
 import { Library } from "./library";
+import { Accent, Settings } from "./settings";
 
 async function side() {
   const db = testDriver();
@@ -34,6 +35,19 @@ async function log(store: LocalStore, cardId: string, id: string) {
 }
 
 describe("adoptGuest", () => {
+  it("moves guest settings into an account that has none", async () => {
+    await new Settings(guest.store).set({ newPerDay: 30, dayStartHour: 0 });
+    await adoptGuest(guest.store, user.store);
+    expect(await new Settings(user.store).get()).toMatchObject({ newPerDay: 30, dayStartHour: 0 });
+  });
+
+  it("keeps the account's own settings and fills only the unset ones", async () => {
+    await new Settings(guest.store).set({ newPerDay: 30, accent: Accent.GB });
+    await new Settings(user.store).set({ newPerDay: 10 });
+    await adoptGuest(guest.store, user.store);
+    expect(await new Settings(user.store).get()).toMatchObject({ newPerDay: 10, accent: Accent.GB });
+  });
+
   it("copies everything into an empty account with the same ids", async () => {
     const deck = ok(await guest.lib.createDeck("Fiiller"));
     const card = ok(await guest.lib.createCard(deck, draft("go", { exampleEn: "Go!" })));

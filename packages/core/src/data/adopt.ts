@@ -1,6 +1,6 @@
 // Guest data joining an account (plan section 7; merge rules decided 25 Oct 2026).
 import { findDuplicate, type CardDraft } from "../card/card";
-import { Table, type Edit, type LocalStore } from "../sync/localStore";
+import { SETTINGS_ID, Table, type Edit, type LocalStore } from "../sync/localStore";
 import type { Values } from "../sync/merge";
 import { searchKey } from "../text/searchKey";
 
@@ -26,6 +26,7 @@ const asDraft = (row: Values): CardDraft & { id: string; deckId: string } => ({
  * Copies live guest decks, cards and logs into the account with their ids.
  * Same-name decks merge; a card already in the target deck (same dictionary
  * sense, or same front and usage label) is skipped and its logs move to it.
+ * Guest settings fill only the fields the account has not set.
  */
 export async function adoptGuest(guest: LocalStore, user: LocalStore): Promise<Adopted> {
   const userDecks = await user.select(Table.Decks, LIVE, []);
@@ -33,6 +34,11 @@ export async function adoptGuest(guest: LocalStore, user: LocalStore): Promise<A
   const userCards = (await user.select(Table.Cards, LIVE, [])).map(asDraft);
 
   const edits: Edit[] = [];
+  const settings = await unsetSettings(guest, user);
+  if (settings !== undefined) {
+    edits.push({ table: Table.Settings, id: SETTINGS_ID, changes: settings });
+  }
+
   const deckIds = new Map<string, string>();
   for (const deck of await guest.select(Table.Decks, LIVE, [])) {
     const existing = deckByName.get(searchKey(String(deck.name ?? "")));
@@ -79,4 +85,12 @@ export async function adoptGuest(guest: LocalStore, user: LocalStore): Promise<A
   await user.appendAll(logs);
 
   return { added: cardIds.size - skipped, skipped, touched: [...touched] };
+}
+
+/** Guest settings for the fields the account has not set. */
+async function unsetSettings(guest: LocalStore, user: LocalStore): Promise<Values | undefined> {
+  const theirs = (await guest.read(Table.Settings, SETTINGS_ID)) ?? {};
+  const mine = (await user.read(Table.Settings, SETTINGS_ID)) ?? {};
+  const fill = Object.entries(theirs).filter(([k, v]) => k !== "id" && (v ?? null) !== null && (mine[k] ?? null) === null);
+  return fill.length === 0 ? undefined : Object.fromEntries(fill);
 }

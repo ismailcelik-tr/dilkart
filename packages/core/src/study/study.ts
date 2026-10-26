@@ -1,25 +1,12 @@
 // What to study now and how answers are recorded; docs/plan.md section 16, items 5 and Aşama 5.
 import type { Card, Library } from "../data/library";
+import { Settings } from "../data/settings";
 import type { SqlReader } from "../dictionary/lookup";
 import { dayKey, dayStart } from "../fsrs/day";
 import { schedules, type Module, type SessionKind } from "../fsrs/policy";
-import { CardState, DEFAULT_RETENTION, Rating, Scheduler, type FsrsState, type Review } from "../fsrs/scheduler";
+import { CardState, Rating, Scheduler, type FsrsState, type Review } from "../fsrs/scheduler";
 import { uuidv7 } from "../sync/id";
 import { Table, type LocalStore } from "../sync/localStore";
-
-export interface StudySettings {
-  newPerDay: number;
-  reviewsPerDay: number;
-  dayStartHour: number;
-  desiredRetention: number;
-}
-
-export const DEFAULT_SETTINGS: StudySettings = {
-  newPerDay: 20,
-  reviewsPerDay: 200,
-  dayStartHour: 4,
-  desiredRetention: DEFAULT_RETENTION,
-};
 
 export interface StudyContext {
   session: SessionKind;
@@ -49,29 +36,30 @@ export class Study {
     private readonly store: LocalStore,
     private readonly library: Library,
     private readonly reader: SqlReader,
-    private readonly settings: StudySettings = DEFAULT_SETTINGS,
+    private readonly settings: Settings = new Settings(store),
     private readonly now: () => number = Date.now,
     private readonly tzOffsetMin: () => number = deviceOffset,
   ) {
-    this.scheduler = new Scheduler(settings.desiredRetention);
+    this.scheduler = new Scheduler();
   }
 
   /** Due learning steps, then reviews (most overdue first) with new cards spread among them. */
   async plan(deckId?: string): Promise<Plan> {
+    const { dayStartHour, newPerDay, reviewsPerDay } = await this.settings.get();
     const cards = deckId === undefined ? await this.library.allCards() : await this.library.cards(deckId);
-    const today = dayKey(new Date(this.now()), this.settings.dayStartHour, this.tzOffsetMin());
-    const endOfDay = dayStart(today + 1, this.settings.dayStartHour, this.tzOffsetMin()).toISOString();
-    const done = await this.doneToday(dayStart(today, this.settings.dayStartHour, this.tzOffsetMin()).toISOString());
+    const today = dayKey(new Date(this.now()), dayStartHour, this.tzOffsetMin());
+    const endOfDay = dayStart(today + 1, dayStartHour, this.tzOffsetMin()).toISOString();
+    const done = await this.doneToday(dayStart(today, dayStartHour, this.tzOffsetMin()).toISOString());
 
     const learning = cards.filter((c) => c.fsrs && isLearning(c.fsrs) && c.fsrs.due < endOfDay).sort(byDue);
     const reviews = cards
       .filter((c) => c.fsrs?.state === CardState.Review && c.fsrs.due < endOfDay)
       .sort(byDue)
-      .slice(0, Math.max(0, this.settings.reviewsPerDay - done.reviews));
+      .slice(0, Math.max(0, reviewsPerDay - done.reviews));
     const fresh = cards
       .filter((c) => c.fsrs === undefined)
       .sort(byCreation)
-      .slice(0, Math.max(0, this.settings.newPerDay - done.new));
+      .slice(0, Math.max(0, newPerDay - done.new));
 
     const mixed: Card[] = [];
     let n = 0;
@@ -93,7 +81,8 @@ export class Study {
   async answer(card: Card, rating: Rating, ctx: StudyContext, elapsedMs: number): Promise<Card> {
     const at = new Date(this.now()).toISOString();
     const tzOffsetMin = this.tzOffsetMin();
-    const scheduled = schedules(card.fsrs, at, { ...ctx, dayStartHour: this.settings.dayStartHour, tzOffsetMin });
+    const { dayStartHour } = await this.settings.get();
+    const scheduled = schedules(card.fsrs, at, { ...ctx, dayStartHour, tzOffsetMin });
 
     await this.store.append(uuidv7(this.now()), {
       card_id: card.id,

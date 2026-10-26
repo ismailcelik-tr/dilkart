@@ -1,12 +1,13 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { Library } from "../data/library";
+import { Settings, type UserSettings } from "../data/settings";
 import { Module, SessionKind } from "../fsrs/policy";
 import { CardState, Rating } from "../fsrs/scheduler";
 import { LocalStore, Table } from "../sync/localStore";
 import { testDriver } from "../sync/testDriver";
 import { Session } from "./session";
-import { DEFAULT_SETTINGS, Study, type StudySettings } from "./study";
+import { Study } from "./study";
 
 const ISTANBUL = 180;
 const T0 = Date.parse("2026-10-25T07:00:00Z"); // 10:00 local
@@ -19,15 +20,18 @@ let lib: Library;
 let store: LocalStore;
 let deck: string;
 
-async function setup(settings: StudySettings = DEFAULT_SETTINGS) {
+async function setup(settings: Partial<UserSettings> = {}) {
   now = T0;
   const db = testDriver();
   store = new LocalStore(db, "dev", () => now);
   await store.open();
+  if (Object.keys(settings).length > 0) {
+    await new Settings(store).set(settings);
+  }
   lib = new Library(store, db, () => now);
   const created = await lib.createDeck("Fiiller");
   deck = created.ok ? created.id : "";
-  return new Study(store, lib, db, settings, () => now, () => ISTANBUL);
+  return new Study(store, lib, db, new Settings(store), () => now, () => ISTANBUL);
 }
 
 async function cards(n: number, prefix = "w") {
@@ -69,7 +73,7 @@ beforeEach(async () => {
 
 describe("Study.plan", () => {
   it("takes new cards in creation order up to the daily limit", async () => {
-    study = await setup({ ...DEFAULT_SETTINGS, newPerDay: 3 });
+    study = await setup({ newPerDay: 3 });
     const ids = await cards(5);
     const plan = await study.plan(deck);
     expect(plan.cards.map((c) => c.id)).toEqual(ids.slice(0, 3));
@@ -89,6 +93,13 @@ describe("Study.plan", () => {
     expect(plan.counts).toEqual({ learning: 0, review: 7, new: 2 });
   });
 
+  it("applies a changed limit without a new Study", async () => {
+    study = await setup({ newPerDay: 3 });
+    await cards(5);
+    await new Settings(store).set({ newPerDay: 1 });
+    expect((await study.plan(deck)).counts.new).toBe(1);
+  });
+
   it("leaves out cards not yet due", async () => {
     const [id = ""] = await cards(1);
     await learnedDaysAgo(study, id, 0);
@@ -96,7 +107,7 @@ describe("Study.plan", () => {
   });
 
   it("subtracts what was already done today", async () => {
-    study = await setup({ ...DEFAULT_SETTINGS, newPerDay: 3 });
+    study = await setup({ newPerDay: 3 });
     const ids = await cards(5);
     await study.answer(await cardOf(ids[0] ?? ""), Rating.Good, REVIEW, 1_000);
     now += 30 * MIN;
@@ -105,7 +116,7 @@ describe("Study.plan", () => {
   });
 
   it("limits reviews per day", async () => {
-    study = await setup({ ...DEFAULT_SETTINGS, reviewsPerDay: 2 });
+    study = await setup({ reviewsPerDay: 2 });
     for (const id of await cards(4)) {
       await learnedDaysAgo(study, id, 20);
     }
