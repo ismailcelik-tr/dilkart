@@ -1,12 +1,13 @@
 import { router } from "expo-router";
 import { useCallback } from "react";
-import { Appearance, useColorScheme } from "react-native";
+import { Appearance, Linking, useColorScheme } from "react-native";
 
 import { useFailedCount, useLoad, useSettings } from "@/services/library";
 import { rememberScheme, type Scheme } from "@/services/prefs";
+import { reminderStatus, type ReminderStatus } from "@/services/reminders";
 import { ErrorText, Group, Row, Screen, SwitchRow } from "@/ui/components";
 
-import { FIELDS, labelOf, type Field } from "./choices";
+import { clock, FIELDS, labelOf, type Field } from "./choices";
 
 const STUDY: Field[] = ["newPerDay", "reviewsPerDay", "dayStartHour", "dailyGoal"];
 
@@ -14,7 +15,10 @@ export function SettingsScreen() {
   const settings = useSettings();
   const failedCount = useFailedCount();
   const [data] = useLoad(
-    useCallback(async () => ({ values: await settings.get(), failed: await failedCount() }), [settings, failedCount]),
+    useCallback(
+      async () => ({ values: await settings.get(), failed: await failedCount(), reminder: await reminderStatus() }),
+      [settings, failedCount],
+    ),
   );
   const dark = useColorScheme() === "dark";
   if (data === undefined) {
@@ -34,12 +38,26 @@ export function SettingsScreen() {
     <Screen>
       <Group title="Çalışma">{STUDY.map((f) => row(f))}</Group>
       <Group title="Ses">{row("accent")}</Group>
+      <Group title="Bildirim">
+        <Row
+          title="Hatırlatma"
+          subtitle={reminderLabel(data.reminder)}
+          onPress={() => (data.reminder.blocked ? void Linking.openSettings() : router.push("/settings/reminder"))}
+        />
+      </Group>
       <Group title="Görünüm">
         <SwitchRow icon="moon.fill" title="Koyu görünüm" value={dark} onChange={(on) => setScheme(on ? "dark" : "light")} />
       </Group>
       {data.failed > 0 && <ErrorText text={`Gönderilemeyen değişiklik: ${data.failed}`} />}
     </Screen>
   );
+}
+
+function reminderLabel(r: ReminderStatus): string {
+  if (r.blocked) {
+    return "Kapalı · iOS Ayarları'ndan izin ver";
+  }
+  return r.minute === null ? "Kapalı" : clock(r.minute);
 }
 
 /** App-wide, native header and keyboard included. */

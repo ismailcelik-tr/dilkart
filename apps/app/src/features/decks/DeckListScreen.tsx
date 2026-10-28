@@ -1,9 +1,10 @@
 import { router } from "expo-router";
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 
 import { StreakRow } from "@/features/stats/StreakRow";
 import { WeakStrip } from "@/features/weak/WeakStrip";
 import { useLibrary, useLoad, useStats, useWeakWords } from "@/services/library";
+import { askReminders } from "@/services/reminders";
 import { Button, ButtonKind, Empty, Group, Row, Screen, SwipeToDelete } from "@/ui/components";
 
 import { confirmRemoveDeck } from "./removeDeck";
@@ -12,6 +13,10 @@ export function DeckListScreen() {
   const lib = useLibrary();
   const weak = useWeakWords();
   const stats = useStats();
+  useEffect(() => {
+    void askReminders(stats);
+  }, [stats]);
+
   const [data, reload] = useLoad(
     useCallback(
       async (l) => ({

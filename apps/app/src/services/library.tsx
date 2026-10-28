@@ -3,11 +3,13 @@ import type { Session, SupabaseClient } from "@supabase/supabase-js";
 import { router, useFocusEffect } from "expo-router";
 import { Storage } from "expo-sqlite/kv-store";
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { AppState } from "react-native";
 
 import { createSupabase, supabaseUrl } from "@/drivers/supabase";
 
 import { GUEST_DB, userDb } from "./databases";
 import { deleteData, openData, type AppData } from "./openData";
+import { refreshReminders } from "./reminders";
 import { SyncProblem, SyncService, type SyncStatus } from "./syncService";
 
 const supabase = createSupabase();
@@ -120,6 +122,20 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
   };
 
   const uidOpen = data !== undefined && uid !== undefined && data.name === userDb(uid) ? uid : undefined;
+
+  // Today's reminder must go once the user studies; leaving the app is the moment to know.
+  useEffect(() => {
+    if (data === undefined) {
+      return;
+    }
+    void refreshReminders(data.stats);
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state === "active" || state === "background") {
+        void refreshReminders(data.stats);
+      }
+    });
+    return () => sub.remove();
+  }, [data]);
 
   useEffect(() => {
     if (data === undefined || uidOpen === undefined || supabase === undefined) {

@@ -1,6 +1,8 @@
 // Gesture and animation libraries need native code; tests render the swipe actions directly.
 import "react-native-gesture-handler/jestSetup";
 
+import { resetFake } from "./fakeNotifications";
+
 jest.mock("react-native-gesture-handler/ReanimatedSwipeable", () => {
   const { createElement } = require("react");
   const { View } = require("react-native");
@@ -37,3 +39,8 @@ jest.mock("expo-sqlite/kv-store", () => ({
 }));
 
 beforeEach(() => mockValues.clear());
+
+// Notifications need native code; tests use an in-memory driver.
+jest.mock("@/drivers/notifications", () => jest.requireActual("./fakeNotifications"));
+
+beforeEach(() => resetFake());

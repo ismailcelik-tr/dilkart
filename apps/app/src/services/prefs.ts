@@ -6,6 +6,8 @@ const MODULE_KEY = "study.module";
 const DIRECTION_KEY = "dictionary.direction";
 const DECK_KEY = "deck.last";
 const SCHEME_KEY = "appearance.scheme";
+const REMINDER_KEY = "reminder.minute";
+const REMINDER_OFF = "off";
 
 /** Unset follows the system. */
 export type Scheme = "light" | "dark";
@@ -44,4 +46,19 @@ export function savedScheme(): Scheme | undefined {
 
 export async function rememberScheme(scheme: Scheme): Promise<void> {
   await Storage.setItem(SCHEME_KEY, scheme);
+}
+
+export const DEFAULT_REMINDER_MINUTE = 20 * 60;
+
+/** Minutes after local midnight; unset = 20:00, null = off. */
+export async function reminderMinute(): Promise<number | null> {
+  const value = await Storage.getItem(REMINDER_KEY);
+  if (value === REMINDER_OFF) {
+    return null;
+  }
+  return value === null ? DEFAULT_REMINDER_MINUTE : Number(value);
+}
+
+export async function rememberReminderMinute(minute: number | null): Promise<void> {
+  await Storage.setItem(REMINDER_KEY, minute === null ? REMINDER_OFF : String(minute));
 }

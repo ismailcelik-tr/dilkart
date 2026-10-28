@@ -9,6 +9,12 @@ interface Choice {
 
 const numbers = (values: number[]): Choice[] => values.map((v) => ({ value: v, label: String(v) }));
 const hour = (h: number) => `${String(h).padStart(2, "0")}:00`;
+const MINUTES_PER_HOUR = 60;
+const pad = (n: number) => String(n).padStart(2, "0");
+
+/** "07:45" for minutes after midnight. */
+export const clock = (minute: number) =>
+  `${pad(Math.floor(minute / MINUTES_PER_HOUR))}:${pad(minute % MINUTES_PER_HOUR)}`;
 
 export const FIELDS: Record<Field, { title: string; choices: Choice[] }> = {
   newPerDay: { title: "Günlük yeni kart", choices: numbers([5, 10, 20, 30, 50]) },
