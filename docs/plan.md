@@ -330,8 +330,9 @@ yalnız `app_config` okur):
 | applied_ops, card_conflicts | kendi | kendi (RPC) | yok | yok |
 | app_config | herkes | yok | yok | yok |
 
-- RPC'ler `SECURITY INVOKER` → RLS içeride de geçerli; `user_id` istemciden
-  alınmaz, `auth.uid()`'den yazılır.
+- İstemci tablolara doğrudan yazamaz; `sync_push` `SECURITY DEFINER`, sahibi ve bileşik
+  anahtarlarla kullanıcı içinde kalır; `sync_pull` `SECURITY INVOKER` (ADR 0008). `user_id`
+  istemciden alınmaz, `auth.uid()`'den yazılır.
 - Kalıcı silme yalnız `public.delete_account()`'ta (`SECURITY DEFINER`, ADR 0011):
   `auth.users`'tan `auth.uid()` satırı; tüm tablolar `ON DELETE CASCADE`.
 - Veri dışa aktarma: web'de istemci yerel veritabanını JSON olarak indirir
@@ -419,7 +420,9 @@ beklemeden). Hesap gereken aşamadan önce senden yeni hesap açman istenir.
 
 Durum (28 Eki 2026): Aşama 0–8 bitti.
 Aşama 9 bitti: 9a (web'de deste/kart yönetimi + toplu ekleme), 9b (Fly'da yayın,
-https://dilkart.fly.dev), 9c (hesap silme + web'de dışa aktarma); sıradaki Aşama 10.
+https://dilkart.fly.dev), 9c (hesap silme + web'de dışa aktarma). Aşama 10'dan yalnız 10a
+(yalnız sync ile yazma) yapıldı; yedek ve Maestro yapılmayacak. Aşama 11–12 kullanıcı uygulamayı
+bir süre kullandıktan sonra düşünülecek. Sıradaki: açık küçük işler.
 
 | # | Aşama | Amaç / işler | Bağımlılık | Bitti sayılır |
 |---|---|---|---|---|
@@ -434,7 +437,7 @@ https://dilkart.fly.dev), 9c (hesap silme + web'de dışa aktarma); sıradaki A�
 | 7 | Hesap + sync | **Supabase `dilkart` org + prod projesi** (mevcut hesap, Free), Gmail SMTP, OTP akışları, misafir bağlama, sync servisi, çıkış | 2, 4 | Auth + sync kriterleri (prod'a karşı duman testi) |
 | 8 | Kişiselleştirme | Zayıf kelimeler, istatistik ekranı, ayarlar, yerel hatırlatmalar | 5 | İlgili kriterler |
 | 9 | Web | Web rotaları: auth, deste/kart yönetimi, hesap silme, dışa aktarma; **yeni Fly.io hesabı**, Dockerfile, deploy workflow | 7 | Web → mobil kriteri, Fly'da canlı |
-| 10 | Güvenlik ve operasyon | pgTAP tam set, `delete-account`, private yedek reposu + geri yükleme provası, Maestro E2E | 7, 9 | Güvenlik + yedek kriterleri |
+| 10 | Güvenlik ve operasyon | pgTAP tam set, `delete-account`, ~~private yedek reposu + geri yükleme provası, Maestro E2E~~ (28 Eki: yapılmayacak) | 7, 9 | Güvenlik kriterleri |
 | 11 | TestFlight | Gizlilik politikası + KVKK sayfası (web), App Privacy beyanı, Beta App Review, demo hesap | 10 | İlk harici TestFlight build'i yayında |
 | 12 | Sonra | App Store (alan adı, işlem e-postası, Turnstile), Android mağaza kararı | 11 | — |
 
@@ -566,8 +569,10 @@ PoC'lerden aşamalara eklenenler (aynı gün onaylandı):
 - **Aşama 9c, hesap silme ve dışa aktarma (28 Eki):** silme web ve telefonda, sunucuda
   `delete_account()` (ADR 0011); dışa aktarma yalnız web, telefonda yönlendirme notu. Ayrıntı:
   `docs/superpowers/specs/2026-10-28-account-delete-export-design.md`.
-- **Aşama 10:** tablolara doğrudan yazma kapatılır, sync RPC'leri
-  `SECURITY DEFINER` (ADR 0008).
+- **Aşama 10a (28 Eki):** tablolara doğrudan yazma kapandı; `sync_push` definer, `sync_pull`
+  invoker; kart → deste, kayıt → kart bileşik anahtarla aynı kullanıcıda (ADR 0008). Yedek (10b)
+  ve Maestro (10c) yapılmayacak: sunucu yedeği yok, yerel kopyalar ve "Verilerimi indir" var.
+  Ayrıntı: `docs/superpowers/specs/2026-10-28-rpc-only-writes-design.md`.
 - **Aşama 11:** gömülü sözlük paketinin release build'de açılış süresi
   (soğuk açılış ≤2 sn).
 
