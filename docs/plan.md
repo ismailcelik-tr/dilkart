@@ -82,7 +82,7 @@ supabase-js). UI hiçbir zaman sürücüye doğrudan gitmez.
 | Konu | Karar | Neden | Elenen |
 |---|---|---|---|
 | Mobil | **React Native + Expo + TS** (kalıyor) | Tek kod tabanından web çıktısı; ts-fsrs ve Supabase Edge Functions (Deno/TS) ile aynı dil; expo-sqlite FTS5 varsayılan açık; expo-speech; yerel bildirim | Flutter (web çıktısı canvas tabanlı ve ağır, Dart ayrı dil); native Swift+Kotlin (iki kod tabanı); KMP (UI yine iki kez) |
-| Web | **Expo Router web, `web.output: "static"`** | Ayrı framework yok; domain kodu ve bileşenler paylaşılır; `npx expo export -p web` → `dist/` | Next.js static export: daha iyi web DX ama ikinci framework, kart düzenleme ekranları iki kez yazılır |
+| Web | **Expo Router web, `web.output: "single"`** (9b'de `static`'ten; SPA) | Ayrı framework yok; domain kodu ve bileşenler paylaşılır; `npx expo export -p web` → `dist/` | Next.js static export: daha iyi web DX ama ikinci framework, kart düzenleme ekranları iki kez yazılır |
 | Yerel DB | **expo-sqlite**; kullanıcı verisi şeması ve migration'ları `core` `LocalStore`'da (ADR 0009), sözlük düz expo-sqlite | FTS5 config plugin ile varsayılan açık; tüm yazmalar outbox'tan geçer | WatermelonDB (JSI kurulumu, kendi sync protokolü yine backend ister); Drizzle (outbox'ı atlayan yazma yolu, kod üretimi; ADR 0009) |
 | Senkronizasyon | **Kendi sync'imiz: Postgres RPC** (`sync_push`, `sync_pull`) | Ücretsiz, ek servis/hesap yok, tamamen test edilebilir | PowerSync Free: 7 gün bağlantısız kalan instance kaldırılıyor, 2 GB/ay; self-host Fly'da 5$'ı aşar. ElectricSQL: ayrı servis + replikasyon, maliyet |
 | Algoritma | **FSRS (ts-fsrs, MIT, FSRS-6)**, cihazda | Daha az tekrarla aynı hatırlama; parametrelenebilir hedef hatırlama oranı; deterministik → test ve yeniden hesaplama kolay | SM-2: basit ama sabit çarpanlar, kötü kart "ease hell" sorunu |
@@ -338,7 +338,7 @@ yalnız `app_config` okur):
   sunucu kodu yok).
 - Sırlar: istemcide yalnız Supabase URL + publishable key. `service_role`
   yalnız Supabase'in Edge Function ortamında. GitHub secrets: `FLY_API_TOKEN`
-  (uygulamaya kısıtlı deploy token), yedek reposunda DB bağlantı dizesi.
+  (uygulamaya kısıtlı deploy token, 1 yıl; 28 Eki 2027'de yenilenir), yedek reposunda DB bağlantı dizesi.
   Repoda `.env.example` dışında env dosyası yok; push protection + gitleaks.
 
 ## 11. Fly.io, Docker ve dağıtım
@@ -419,7 +419,8 @@ Her aşama sonunda: testler yeşil → commit + push (isim onayından sonra
 beklemeden). Hesap gereken aşamadan önce senden yeni hesap açman istenir.
 
 Durum (28 Eki 2026): Aşama 0–8 bitti.
-Aşama 9a (web'de deste/kart yönetimi + toplu ekleme) bitti; sıradaki 9b (Fly'da yayın).
+Aşama 9a (web'de deste/kart yönetimi + toplu ekleme) ve 9b (Fly'da yayın, https://dilkart.fly.dev)
+bitti; sıradaki 9c (hesap silme + dışa aktarma).
 
 | # | Aşama | Amaç / işler | Bağımlılık | Bitti sayılır |
 |---|---|---|---|---|
@@ -560,6 +561,9 @@ PoC'lerden aşamalara eklenenler (aynı gün onaylandı):
   repository" yerine); hesap zorunlu; çalışma, sözlük, istatistik, ayarlar web'de yok; desteler
   toplu ekleme alır. Sunucu saati `server_time()` RPC'sinden. Ayrıntı:
   `docs/superpowers/specs/2026-10-28-web-cards-design.md`.
+- **Aşama 9b, Fly (28 Eki):** https://dilkart.fly.dev; Caddy + CSP (`worker-src blob:`
+  expo-sqlite worker'ı için); web çıktısı `single`; `main`'de CI yeşilse deploy. Ayrıntı:
+  `docs/superpowers/specs/2026-10-28-web-deploy-design.md`.
 - **Aşama 10:** tablolara doğrudan yazma kapatılır, sync RPC'leri
   `SECURITY DEFINER` (ADR 0008).
 - **Aşama 11:** gömülü sözlük paketinin release build'de açılış süresi
