@@ -10,6 +10,7 @@ import {
   type Retention,
   type StateCounts,
 } from "../stats/stats";
+import { reminderPlan, type Reminder } from "../stats/reminders";
 import type { LocalStore } from "../sync/localStore";
 import type { Library } from "./library";
 import { reviewsByCard } from "./reviews";
@@ -78,5 +79,16 @@ export class Stats {
       states: stateCounts(states),
       forecast: forecast(states, now, ctx),
     };
+  }
+
+  /** Next week's reminders at `minute` after local midnight. */
+  async reminders(minute: number): Promise<Reminder[]> {
+    const { dayStartHour } = await this.settings.get();
+    const tzOffsetMin = this.tzOffsetMin();
+    const now = this.now();
+    const { streak, answers } = await this.today();
+    const states = (await this.library.allCards()).map((c) => c.fsrs);
+    const due = forecast(states, new Date(now).toISOString(), { dayStartHour, tzOffsetMin });
+    return reminderPlan({ now, minute, dayStartHour, tzOffsetMin, studied: answers > 0, streak, due });
   }
 }

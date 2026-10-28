@@ -128,3 +128,19 @@ describe("Stats.report", () => {
     expect((await stats.report()).streak.current).toBe((await stats.today()).streak);
   });
 });
+
+describe("Stats.reminders", () => {
+  it("skips today after study and counts due cards", async () => {
+    const go = await card("go");
+    await answer(go, HOUR);
+    await store.cacheFsrs(go, mature(NOW + DAY));
+
+    const plan = await stats.reminders(20 * 60);
+    expect(plan).toHaveLength(6);
+    expect(plan[0]).toEqual({
+      at: new Date("2026-10-28T17:00:00Z"),
+      title: "🔥 1 günlük serin bitmesin",
+      body: "Bugün 1 kart seni bekliyor",
+    });
+  });
+});

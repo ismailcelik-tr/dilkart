@@ -17,6 +17,8 @@ export { CardState, DEFAULT_RETENTION, Rating, Scheduler } from "./fsrs/schedule
 export type { FsrsState, Review, Step } from "./fsrs/scheduler";
 export { dailyCounts, forecast, retention, stateCounts, streak, weekday } from "./stats/stats";
 export type { DayContext, Retention, StateCounts } from "./stats/stats";
+export { REMINDER_DAYS, reminderPlan } from "./stats/reminders";
+export type { Reminder, ReminderInput } from "./stats/reminders";
 export { checkAnswer, Verdict } from "./text/answer";
 export type { Check } from "./text/answer";
 export { dismissUntil, suggestWeak } from "./weak/weak";
