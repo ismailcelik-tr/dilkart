@@ -8,7 +8,7 @@ primary_region = "fra"
   # Public: the publishable key and URL ship in the browser bundle.
   [build.args]
     EXPO_PUBLIC_SUPABASE_URL = "https://kcpwtkzhflsawtipjzcl.supabase.co"
-    EXPO_PUBLIC_SUPABASE_KEY = "sb_publishable_yI5uXWqQKisNuOnvFLcrXQ_ls1psQnk"
+    EXPO_PUBLIC_SUPABASE_KEY = "sb_publishable_yI5uXWqQKisNuOnvFLcrXQ_ls1psQnk" # gitleaks:allow
 
 [env]
   SUPABASE_ORIGIN = "https://kcpwtkzhflsawtipjzcl.supabase.co"
