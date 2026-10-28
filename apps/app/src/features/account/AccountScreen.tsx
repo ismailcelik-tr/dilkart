@@ -1,10 +1,14 @@
 import { router } from "expo-router";
+import { useState } from "react";
 import { Text } from "react-native";
+
+import { download } from "@/drivers/download";
 
 import { useAccount } from "@/services/library";
 import { SyncProblem } from "@/services/syncService";
 import { Button, ButtonKind, Empty, ErrorText, Screen } from "@/ui/components";
 import { confirm } from "@/ui/confirm";
+import { IS_WEB } from "@/ui/platform";
 import { useTheme } from "@/ui/theme";
 
 const PROBLEMS: Record<SyncProblem, string | undefined> = {
@@ -14,11 +18,17 @@ const PROBLEMS: Record<SyncProblem, string | undefined> = {
   [SyncProblem.Upgrade]: "Eşitleme için uygulamayı güncelle; verilerin cihazda güvende.",
 };
 
+const DELETE_WARNING = "Hesabın, sunucudaki tüm kartların ve çalışma geçmişin kalıcı olarak silinecek. Geri alınamaz.";
+
 const time = (ms: number) => new Date(ms).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
+const pad = (n: number) => String(n).padStart(2, "0");
+/** Local YYYY-MM-DD. */
+const dayStamp = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 
 export function AccountScreen() {
   const account = useAccount();
   const theme = useTheme();
+  const [deleteFailed, setDeleteFailed] = useState(false);
 
   if (account.client === undefined) {
     return <Empty text="Bu sürümde hesaplar kapalı; kartların yalnız bu cihazda." />;
@@ -45,6 +55,13 @@ export function AccountScreen() {
       await account.signOut();
     }
   };
+  const remove = async () => {
+    if (!(await confirm("Hesabı sil", DELETE_WARNING, "Hesabı sil"))) {
+      return;
+    }
+    setDeleteFailed(!(await account.deleteAccount()));
+  };
+  const save = async () => download(`dilkart-${dayStamp(new Date())}.json`, await account.exportJson());
 
   return (
     <Screen>
@@ -55,6 +72,9 @@ export function AccountScreen() {
       {problem !== undefined && <ErrorText text={problem} />}
       <Button title="Şimdi eşitle" kind={ButtonKind.Primary} onPress={() => void account.syncNow()} />
       <Button title="Çıkış yap" kind={ButtonKind.Danger} onPress={signOut} />
+      {IS_WEB ? <Button title="Verilerimi indir" onPress={save} /> : <Empty text="Verilerini dilkart.fly.dev'den indirebilirsin." />}
+      <Button title="Hesabı sil" kind={ButtonKind.Danger} onPress={remove} />
+      {deleteFailed && <ErrorText text="Hesap silinemedi; bağlantını kontrol edip yeniden dene." />}
     </Screen>
   );
 }

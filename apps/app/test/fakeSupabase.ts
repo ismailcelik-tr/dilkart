@@ -10,6 +10,7 @@ export class FakeSupabase {
   session: { user: { id: string; email: string } } | null = null;
   rows: RemoteRow[] = [];
   pushed: Op[] = [];
+  deleted: string[] = [];
   outage = false;
   /** While set, RPCs wait for it, so a test can act during a sync round. */
   gate?: Promise<void>;
@@ -83,6 +84,10 @@ export class FakeSupabase {
     await this.gate;
     if (this.outage) {
       return { data: null, error: { message: "offline" }, status: 0 };
+    }
+    if (fn === "delete_account") {
+      this.deleted.push(this.session?.user.id ?? "");
+      return { data: null, error: null, status: 204 };
     }
     if (fn === "server_time") {
       return { data: Date.now(), error: null, status: 200 };

@@ -1,4 +1,4 @@
-import { adoptGuest, rpcRemote, type Library, type Settings, type Stats, type Study, type WeakWords } from "@dilkart/core";
+import { adoptGuest, exportData, rpcRemote, type Library, type Settings, type Stats, type Study, type WeakWords } from "@dilkart/core";
 import type { Session, SupabaseClient } from "@supabase/supabase-js";
 import { router, useFocusEffect } from "expo-router";
 import { Storage } from "expo-sqlite/kv-store";
@@ -27,6 +27,10 @@ export interface Account {
   adopt: () => Promise<void>;
   keepGuest: () => Promise<void>;
   signOut: () => Promise<void>;
+  /** False when the server could not delete it; nothing has changed then. */
+  deleteAccount: () => Promise<boolean>;
+  /** The open database as an export file's text. */
+  exportJson: () => Promise<string>;
 }
 
 const DataContext = createContext<AppData | null>(null);
@@ -175,6 +179,26 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       }
       retiring.current = userDb(uid);
       await supabase.auth.signOut({ scope: "local" });
+    },
+    deleteAccount: async () => {
+      if (supabase === undefined || uid === undefined) {
+        return false;
+      }
+      const { error: failed } = await supabase.rpc("delete_account");
+      if (failed !== null) {
+        return false;
+      }
+
+      retiring.current = userDb(uid);
+      await supabase.auth.signOut({ scope: "local" });
+      return true;
+    },
+    exportJson: async () => {
+      const d = current.current;
+      if (d === undefined) {
+        throw new Error("no open database");
+      }
+      return JSON.stringify(await exportData(d.store, d.library, d.settings, Date.now()), null, 2);
     },
   };
 
