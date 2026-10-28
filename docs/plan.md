@@ -573,8 +573,10 @@ PoC'lerden aşamalara eklenenler (aynı gün onaylandı):
   invoker; kart → deste, kayıt → kart bileşik anahtarla aynı kullanıcıda (ADR 0008). Yedek (10b)
   ve Maestro (10c) yapılmayacak: sunucu yedeği yok, yerel kopyalar ve "Verilerimi indir" var.
   Ayrıntı: `docs/superpowers/specs/2026-10-28-rpc-only-writes-design.md`.
-- **Aşama 11:** gömülü sözlük paketinin release build'de açılış süresi
-  (soğuk açılış ≤2 sn).
+- **Soğuk açılış (28 Eki, iPhone 17, release):** React Native başlangıcından ana ekrana ~0,08 sn,
+  sözlüğün oturumdaki ilk açılışı ~0,01 sn; kullanıcı beklemiyor. iOS'un React Native öncesi
+  süresi ve paketin kurulumdaki tek kopyası ölçülmedi. Geçici ölçüm kodu kaldırıldı.
+- **Kart listesinde kaydırarak silme (28 Eki):** deste ekranında, deste listesindeki gibi onaylı.
 
 ## Doğrulama (uçtan uca)
 
