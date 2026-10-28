@@ -6,6 +6,7 @@ import ReanimatedSwipeable from "react-native-gesture-handler/ReanimatedSwipeabl
 import { FlatList, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { IS_WEB } from "./platform";
 import { RADIUS, SPACE, useTheme } from "./theme";
 
 /** `typing`: the screen has text fields, so it keeps the focused one above the keyboard. */
@@ -85,23 +86,26 @@ export function Row(props: {
   children?: ReactNode;
 }) {
   const theme = useTheme();
+  // The accessory sits beside the pressable, not in it: on web a pressable is a <button>.
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityState={{ selected: props.selected }}
-      onPress={props.onPress}
-      style={({ pressed }) => [styles.row, { borderBottomColor: theme.separator }, pressed && styles.pressed]}
-    >
-      <View style={styles.rowText}>
-        <Text style={[styles.body, { color: theme.text }]}>{props.title}</Text>
-        {props.subtitle !== undefined && (
-          <Text style={[styles.caption, { color: theme.secondary }]}>{props.subtitle}</Text>
-        )}
-        {props.children}
-      </View>
-      {props.accessory}
-      {props.selected && <Text style={[styles.body, { color: theme.tint }]}>✓</Text>}
-    </Pressable>
+    <View style={[styles.rowOuter, { borderBottomColor: theme.separator }]}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityState={{ selected: props.selected }}
+        onPress={props.onPress}
+        style={({ pressed }) => [styles.rowMain, pressed && styles.pressed]}
+      >
+        <View style={styles.rowText}>
+          <Text style={[styles.body, { color: theme.text }]}>{props.title}</Text>
+          {props.subtitle !== undefined && (
+            <Text style={[styles.caption, { color: theme.secondary }]}>{props.subtitle}</Text>
+          )}
+          {props.children}
+        </View>
+        {props.selected && <Text style={[styles.body, { color: theme.tint }]}>✓</Text>}
+      </Pressable>
+      {props.accessory !== undefined && <View style={styles.accessory}>{props.accessory}</View>}
+    </View>
   );
 }
 
@@ -239,9 +243,12 @@ export function Empty({ text }: { text: string }) {
   return <Text style={[styles.empty, { color: theme.secondary }]}>{text}</Text>;
 }
 
+// Desktop browsers: a phone-width column in the middle.
+const WEB_COLUMN = { width: "100%", maxWidth: 640, alignSelf: "center" } as const;
+
 const styles = StyleSheet.create({
-  screen: { padding: SPACE, gap: SPACE },
-  list: { paddingVertical: SPACE },
+  screen: { padding: SPACE, gap: SPACE, ...(IS_WEB && WEB_COLUMN) },
+  list: { paddingVertical: SPACE, ...(IS_WEB && WEB_COLUMN) },
   bar: { padding: SPACE, gap: SPACE },
   group: { borderRadius: RADIUS, overflow: "hidden" },
   groupTitle: { paddingHorizontal: SPACE },
@@ -252,6 +259,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
   },
+  rowOuter: { flexDirection: "row", alignItems: "center", borderBottomWidth: StyleSheet.hairlineWidth },
+  rowMain: { flex: 1, flexDirection: "row", alignItems: "center", paddingHorizontal: SPACE, paddingVertical: 12 },
+  accessory: { paddingRight: SPACE },
   rowText: { flex: 1, gap: 2 },
   switchRow: { gap: 12, borderBottomWidth: 0 },
   body: { fontSize: 17 },

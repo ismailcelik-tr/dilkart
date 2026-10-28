@@ -1,15 +1,7 @@
 import type { SqlDriver, SqlExecutor } from "@dilkart/core";
-import type { SQLiteBindValue, SQLiteDatabase } from "expo-sqlite";
+import type { SQLiteDatabase } from "expo-sqlite";
 
-function executor(db: SQLiteDatabase): SqlExecutor {
-  return {
-    all: <T>(sql: string, params: unknown[]) => db.getAllAsync<T>(sql, params as SQLiteBindValue[]),
-    run: async (sql, params) => {
-      await db.runAsync(sql, params as SQLiteBindValue[]);
-    },
-    exec: (sql) => db.execAsync(sql),
-  };
-}
+import { executor } from "./sqlExecutor";
 
 /** Exclusive transactions run on their own connection, hence the `tx` executor. */
 export function sqlDriver(db: SQLiteDatabase): SqlDriver {

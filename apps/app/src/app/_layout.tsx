@@ -12,13 +12,15 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import { LibraryProvider } from "@/services/library";
 import { savedScheme } from "@/services/prefs";
+import { IS_WEB } from "@/ui/platform";
 import { useTheme } from "@/ui/theme";
 
 // Deep links open above the deck list, so back always has somewhere to go.
 export const unstable_settings = { anchor: "index" };
 
 const saved = savedScheme();
-if (saved !== undefined) {
+// react-native-web has no setColorScheme; web follows the browser.
+if (saved !== undefined && !IS_WEB) {
   Appearance.setColorScheme(saved);
 }
 
@@ -32,7 +34,7 @@ export default function RootLayout() {
           <Stack
             screenOptions={({ route }) => ({
               headerRight:
-                route.name === "dictionary"
+                route.name === "dictionary" || IS_WEB
                   ? undefined
                   : () => <DictionaryButton />,
             })}
@@ -44,6 +46,7 @@ export default function RootLayout() {
               name="deck/[id]/rename"
               options={{ title: "Yeniden adlandır" }}
             />
+            <Stack.Screen name="deck/[id]/bulk" options={{ title: "Toplu ekle" }} />
             <Stack.Screen name="card/new" options={{ title: "Yeni kart" }} />
             <Stack.Screen
               name="card/[id]/index"
@@ -53,27 +56,30 @@ export default function RootLayout() {
               name="card/[id]/move"
               options={{ title: "Desteye taşı" }}
             />
-            <Stack.Screen name="study/index" options={{ title: "Çalış" }} />
-            <Stack.Screen name="study/session" options={{ title: "Çalışma" }} />
-            <Stack.Screen
-              name="study/match"
-              options={{ title: "Eşleştirme" }}
-            />
-            <Stack.Screen
-              name="dictionary"
-              options={{
-                title: "Sözlük",
-                presentation: "formSheet",
-                sheetAllowedDetents: [0.75, 1],
-                sheetGrabberVisible: true,
-              }}
-            />
             <Stack.Screen name="about/index" options={{ title: "Hakkında" }} />
-            <Stack.Screen name="settings/index" options={{ title: "Ayarlar" }} />
-            <Stack.Screen name="settings/choose" options={{ title: "" }} />
-            <Stack.Screen name="settings/reminder" options={{ title: "Hatırlatma" }} />
-            <Stack.Screen name="weak/suggestions" options={{ title: "Zayıf kelime önerileri" }} />
-            <Stack.Screen name="stats/index" options={{ title: "İstatistikler" }} />
+            {/* Web is for deck and card management (ADR 0010). */}
+            <Stack.Protected guard={!IS_WEB}>
+              <Stack.Screen name="study/index" options={{ title: "Çalış" }} />
+              <Stack.Screen name="study/session" options={{ title: "Çalışma" }} />
+              <Stack.Screen
+                name="study/match"
+                options={{ title: "Eşleştirme" }}
+              />
+              <Stack.Screen
+                name="dictionary"
+                options={{
+                  title: "Sözlük",
+                  presentation: "formSheet",
+                  sheetAllowedDetents: [0.75, 1],
+                  sheetGrabberVisible: true,
+                }}
+              />
+              <Stack.Screen name="settings/index" options={{ title: "Ayarlar" }} />
+              <Stack.Screen name="settings/choose" options={{ title: "" }} />
+              <Stack.Screen name="settings/reminder" options={{ title: "Hatırlatma" }} />
+              <Stack.Screen name="weak/suggestions" options={{ title: "Zayıf kelime önerileri" }} />
+              <Stack.Screen name="stats/index" options={{ title: "İstatistikler" }} />
+            </Stack.Protected>
             <Stack.Screen name="account/index" options={{ title: "Hesap" }} />
             <Stack.Screen
               name="account/sign-up"

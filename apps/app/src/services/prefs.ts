@@ -2,6 +2,8 @@
 import { Direction, type Module } from "@dilkart/core";
 import { Storage } from "expo-sqlite/kv-store";
 
+import { syncStore } from "@/drivers/syncStore";
+
 const MODULE_KEY = "study.module";
 const DIRECTION_KEY = "dictionary.direction";
 const DECK_KEY = "deck.last";
@@ -40,12 +42,12 @@ export async function rememberDeck(deckId: string): Promise<void> {
 
 /** Sync: read before the first frame, so the app never flashes the system scheme. */
 export function savedScheme(): Scheme | undefined {
-  const value = Storage.getItemSync(SCHEME_KEY);
+  const value = syncStore.get(SCHEME_KEY);
   return value === "light" || value === "dark" ? value : undefined;
 }
 
 export async function rememberScheme(scheme: Scheme): Promise<void> {
-  await Storage.setItem(SCHEME_KEY, scheme);
+  await syncStore.set(SCHEME_KEY, scheme);
 }
 
 export const DEFAULT_REMINDER_MINUTE = 20 * 60;

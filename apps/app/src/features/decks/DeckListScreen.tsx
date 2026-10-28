@@ -3,9 +3,10 @@ import { useCallback, useEffect } from "react";
 
 import { StreakRow } from "@/features/stats/StreakRow";
 import { WeakStrip } from "@/features/weak/WeakStrip";
-import { useLibrary, useLoad, useStats, useWeakWords } from "@/services/library";
+import { useAccount, useLibrary, useLoad, useStats, useWeakWords } from "@/services/library";
 import { askReminders } from "@/services/reminders";
 import { Button, ButtonKind, Empty, Group, Row, Screen, SwipeToDelete } from "@/ui/components";
+import { IS_WEB } from "@/ui/platform";
 
 import { confirmRemoveDeck } from "./removeDeck";
 
@@ -13,6 +14,7 @@ export function DeckListScreen() {
   const lib = useLibrary();
   const weak = useWeakWords();
   const stats = useStats();
+  const account = useAccount();
   useEffect(() => {
     void askReminders(stats);
   }, [stats]);
@@ -32,6 +34,17 @@ export function DeckListScreen() {
     return null;
   }
 
+  // Web only manages an account's cards; guest cards there would never reach the phone.
+  if (IS_WEB && account.email === undefined) {
+    return (
+      <Screen>
+        <Empty text="Kartlarını telefona aktarmak için giriş yap" />
+        <Button title="Giriş yap" kind={ButtonKind.Primary} onPress={() => router.push("/account")} />
+        <Button title="Hakkında" onPress={() => router.push("/about")} />
+      </Screen>
+    );
+  }
+
   const { decks } = data;
 
   return (
@@ -43,9 +56,13 @@ export function DeckListScreen() {
         </>
       ) : (
         <>
-          <WeakStrip weak={data.weak} suggested={data.suggested} />
-          <StreakRow today={data.today} />
-          <Button title="Tümünü çalış" kind={ButtonKind.Primary} onPress={() => router.push("/study")} />
+          {!IS_WEB && (
+            <>
+              <WeakStrip weak={data.weak} suggested={data.suggested} />
+              <StreakRow today={data.today} />
+              <Button title="Tümünü çalış" kind={ButtonKind.Primary} onPress={() => router.push("/study")} />
+            </>
+          )}
           <Button title="Yeni deste" onPress={() => router.push("/deck/new")} />
           <Group>
             {decks.map((d) => (
@@ -60,9 +77,9 @@ export function DeckListScreen() {
           </Group>
         </>
       )}
-      <Button title="İstatistikler" onPress={() => router.push("/stats")} />
+      {!IS_WEB && <Button title="İstatistikler" onPress={() => router.push("/stats")} />}
       <Button title="Hesap" onPress={() => router.push("/account")} />
-      <Button title="Ayarlar" onPress={() => router.push("/settings")} />
+      {!IS_WEB && <Button title="Ayarlar" onPress={() => router.push("/settings")} />}
       <Button title="Hakkında" onPress={() => router.push("/about")} />
     </Screen>
   );

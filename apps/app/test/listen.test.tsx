@@ -44,6 +44,16 @@ describe("listen", () => {
     expect(screen.queryByText("Ön yüz")).toBeNull();
   });
 
+  // react-native-web renders a pressable as <button>, and a <button> inside another is invalid HTML.
+  it("keeps the speaker outside the row's button", async () => {
+    await renderRouter(APP, { initialUrl: `/deck/${deckId}` });
+    let node = (await screen.findByLabelText("Dinle: go")).parent;
+    while (node !== null) {
+      expect(node.props.accessibilityRole).not.toBe("button");
+      node = node.parent;
+    }
+  });
+
   it("reads the example sentence after the answer", async () => {
     await renderRouter(APP, { initialUrl: `/study?deckId=${deckId}` });
     await fireEvent.press(await screen.findByText("Anlam hatırlama"));

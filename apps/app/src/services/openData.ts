@@ -1,14 +1,10 @@
 import { Library, LocalStore, RecentSearches, Settings, Stats, Study, WeakWords, type SqlReader } from "@dilkart/core";
-import { deleteDatabaseAsync, importDatabaseFromAssetAsync, openDatabaseAsync } from "expo-sqlite";
+import { deleteDatabaseAsync, openDatabaseAsync } from "expo-sqlite";
 
 import { sqlDriver } from "@/drivers/sqlDriver";
 
 import { GUEST_DB } from "./databases";
-
-// Copied from the bundled asset once; a new pack ships under a new name so it is copied again.
-const DICTIONARY_DB = "dictionary-v1.sqlite";
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const DICTIONARY_ASSET: number = require("@/assets/dictionary/dictionary.sqlite");
+import { openDictionary } from "./dictionaryPack";
 
 export interface AppData {
   /** Database file name. */
@@ -24,16 +20,6 @@ export interface AppData {
   dictionary: () => Promise<SqlReader>;
   /** Idempotent. */
   close: () => Promise<void>;
-}
-
-let dictionary: Promise<SqlReader> | undefined;
-
-function openDictionary(): Promise<SqlReader> {
-  // importDatabaseFromAssetAsync is what SQLiteProvider uses; the provider would tie the pack to one subtree.
-  dictionary ??= importDatabaseFromAssetAsync(DICTIONARY_DB, { assetId: DICTIONARY_ASSET })
-    .then(() => openDatabaseAsync(DICTIONARY_DB))
-    .then(sqlDriver);
-  return dictionary;
 }
 
 export async function openData(name: string = GUEST_DB): Promise<AppData> {
