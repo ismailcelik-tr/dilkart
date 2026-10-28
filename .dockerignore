@@ -1,0 +1,11 @@
+**/node_modules
+**/.expo
+**/dist
+.git
+apps/app/ios
+apps/app/android
+apps/app/assets/dictionary
+apps/app/.env*
+tools/dictionary
+spec
+docs

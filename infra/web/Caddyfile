@@ -1,0 +1,35 @@
+{
+	admin off
+}
+
+:8080 {
+	encode zstd gzip
+
+	header {
+		# expo-sqlite on web needs SharedArrayBuffer, so the page must be cross-origin isolated (ADR 0010).
+		Cross-Origin-Opener-Policy "same-origin"
+		Cross-Origin-Embedder-Policy "require-corp"
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "no-referrer"
+		# wasm-unsafe-eval: wa-sqlite; blob: workers: expo-sqlite; unsafe-inline styles: react-native-web.
+		Content-Security-Policy "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' {$SUPABASE_ORIGIN}; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+	}
+
+	# Before the SPA fallback below, which would otherwise serve index.html here.
+	handle /healthz {
+		respond "ok" 200
+	}
+
+	handle {
+		root * /srv
+		# Hashed bundles never change; every other path is the page and must not be cached.
+		@hashed path /_expo/static/* /assets/*
+		@page not path /_expo/static/* /assets/*
+		header @hashed Cache-Control "public, max-age=31536000, immutable"
+		header @page Cache-Control "no-cache"
+
+		try_files {path} /index.html
+		file_server
+	}
+}

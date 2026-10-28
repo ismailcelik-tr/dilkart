@@ -1,0 +1,32 @@
+# Web on Fly.io: static files behind Caddy (ADR 0006, plan section 11).
+app = "dilkart"
+primary_region = "fra"
+
+[build]
+  dockerfile = "infra/web/Dockerfile"
+
+  # Public: the publishable key and URL ship in the browser bundle.
+  [build.args]
+    EXPO_PUBLIC_SUPABASE_URL = "https://kcpwtkzhflsawtipjzcl.supabase.co"
+    EXPO_PUBLIC_SUPABASE_KEY = "sb_publishable_yI5uXWqQKisNuOnvFLcrXQ_ls1psQnk"
+
+[env]
+  SUPABASE_ORIGIN = "https://kcpwtkzhflsawtipjzcl.supabase.co"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [[http_service.checks]]
+    grace_period = "5s"
+    interval = "30s"
+    method = "GET"
+    path = "/healthz"
+    timeout = "5s"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"

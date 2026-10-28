@@ -1,7 +1,7 @@
 # PoC-A: çevrimdışı üç yönlü sözlük
 
 Tarih: 24 Eki 2026. Kod: `tools/dictionary` (ETL), `packages/core/src/dictionary` (arama),
-`apps/app/src/app/dev/dictionary-bench.tsx` (cihaz ölçümü).
+`apps/app/src/app/dev/dictionary-bench.tsx` (cihaz ölçümü; 28 Eki'de kaldırıldı, git geçmişinde).
 
 ## Kaynaklar
 
