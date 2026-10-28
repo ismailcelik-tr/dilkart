@@ -4,7 +4,7 @@ import type { ReactElement } from "react";
 
 import { ListenButton } from "@/features/speech/ListenButton";
 import { useSpeech } from "@/services/speech";
-import { ListScreen, Row } from "@/ui/components";
+import { ListScreen, Row, SwipeToDelete } from "@/ui/components";
 
 export function CardList(props: {
   cards: Card[];
@@ -12,6 +12,8 @@ export function CardList(props: {
   header?: ReactElement;
   footer?: ReactElement;
   onContentSizeChange?: () => void;
+  /** Adds a swipe-to-delete action to each row. */
+  onDelete?: (card: Card) => void;
 }) {
   const speech = useSpeech();
   const empty = props.cards.length === 0 ? props.empty : undefined;
@@ -19,14 +21,25 @@ export function CardList(props: {
     <ListScreen
       data={props.cards}
       keyOf={(c) => c.id}
-      render={(c) => (
-        <Row
-          title={c.usageLabel ? `${c.front} · ${c.usageLabel}` : c.front}
-          subtitle={c.meanings.map((m) => m.tr).join(", ")}
-          onPress={() => router.push(`/card/${c.id}`)}
-          accessory={speech.available ? <ListenButton text={c.front} onSpeak={speech.speak} /> : undefined}
-        />
-      )}
+      render={(c) => {
+        const row = (
+          <Row
+            title={c.usageLabel ? `${c.front} · ${c.usageLabel}` : c.front}
+            subtitle={c.meanings.map((m) => m.tr).join(", ")}
+            onPress={() => router.push(`/card/${c.id}`)}
+            accessory={speech.available ? <ListenButton text={c.front} onSpeak={speech.speak} /> : undefined}
+          />
+        );
+        const { onDelete } = props;
+        if (onDelete === undefined) {
+          return row;
+        }
+        return (
+          <SwipeToDelete label={`Sil: ${c.front}`} onDelete={() => onDelete(c)}>
+            {row}
+          </SwipeToDelete>
+        );
+      }}
       header={
         props.header || empty ? (
           <>

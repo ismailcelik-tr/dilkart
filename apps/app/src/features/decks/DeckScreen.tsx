@@ -3,6 +3,7 @@ import { useCallback } from "react";
 
 import { useLibrary, useLoad } from "@/services/library";
 import { CardList } from "@/features/cards/CardList";
+import { confirmRemoveCard } from "@/features/cards/removeCard";
 import { confirmRemoveDeck } from "@/features/decks/removeDeck";
 import { Button, ButtonKind, Empty } from "@/ui/components";
 import { goBack } from "@/ui/navigation";
@@ -10,7 +11,7 @@ import { IS_WEB } from "@/ui/platform";
 
 export function DeckScreen({ deckId }: { deckId: string }) {
   const lib = useLibrary();
-  const [data] = useLoad(
+  const [data, reload] = useLoad(
     useCallback(
       async (l) => ({ deck: (await l.decks()).find((d) => d.id === deckId), cards: await l.cards(deckId) }),
       [deckId],
@@ -32,6 +33,7 @@ export function DeckScreen({ deckId }: { deckId: string }) {
       <Stack.Screen options={{ title: deck.name }} />
       <CardList
         cards={cards}
+        onDelete={(c) => confirmRemoveCard(lib, c, reload)}
         empty={<Empty text="Bu destede kart yok" />}
         header={
           <>

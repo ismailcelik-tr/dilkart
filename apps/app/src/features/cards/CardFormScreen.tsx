@@ -5,8 +5,9 @@ import { useEffect, useState } from "react";
 import { useLibrary } from "@/services/library";
 import { rememberDeck } from "@/services/prefs";
 import { Button, ButtonKind, ErrorText, Field, Screen } from "@/ui/components";
-import { confirm } from "@/ui/confirm";
 import { goBack } from "@/ui/navigation";
+
+import { confirmRemoveCard } from "./removeCard";
 
 const MESSAGES: Record<CardError, string> = {
   [CardError.EmptyFront]: "Ön yüz boş olamaz.",
@@ -53,14 +54,7 @@ export function CardFormScreen({ cardId, deckId }: { cardId?: string; deckId?: s
     back();
   };
 
-  const remove = async () => {
-    if (!(await confirm("Kartı sil", `${draft.front} silinecek.`, "Sil"))) {
-      return;
-    }
-
-    await lib.removeCard(String(cardId));
-    back();
-  };
+  const remove = () => confirmRemoveCard(lib, { id: String(cardId), front: draft.front }, back);
 
   const has = (e: CardError) => (errors.includes(e) ? MESSAGES[e] : undefined);
 

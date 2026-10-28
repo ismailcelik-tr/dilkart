@@ -161,4 +161,15 @@ describe("cards", () => {
     expect(await lib.card(cardId)).toBeUndefined();
     expect((await lib.cards(deckId)).length).toBe(0);
   });
+
+  it("deletes a card from its swipe action after confirming", async () => {
+    const { deckId, cardId } = await deckWithCard();
+    await renderRouter(APP, { initialUrl: `/deck/${deckId}` });
+    confirmNextAlert();
+    await fireEvent.press(await screen.findByLabelText("Sil: go"));
+
+    expect(Alert.alert).toHaveBeenCalledWith("Kartı sil", "go silinecek.", expect.any(Array));
+    expect(await screen.findByText("Bu destede kart yok")).toBeOnTheScreen();
+    expect(await lib.card(cardId)).toBeUndefined();
+  });
 });
