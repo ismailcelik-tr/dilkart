@@ -81,6 +81,7 @@ export function Row(props: {
   subtitle?: string;
   selected?: boolean;
   onPress: () => void;
+  accessory?: ReactNode;
   children?: ReactNode;
 }) {
   const theme = useTheme();
@@ -98,7 +99,24 @@ export function Row(props: {
         )}
         {props.children}
       </View>
+      {props.accessory}
       {props.selected && <Text style={[styles.body, { color: theme.tint }]}>✓</Text>}
+    </Pressable>
+  );
+}
+
+/** Small tinted symbol button, e.g. a speaker beside a word. */
+export function IconButton({ icon, label, onPress }: { icon: SFSymbol; label: string; onPress: () => void }) {
+  const theme = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      hitSlop={8}
+      style={({ pressed }) => pressed && styles.pressed}
+    >
+      <SymbolView name={icon} tintColor={theme.tint} size={20} />
     </Pressable>
   );
 }

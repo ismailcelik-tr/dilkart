@@ -3,6 +3,7 @@ import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import { StyleSheet, Text, TextInput, View } from "react-native";
 
+import { ListenButton } from "@/features/speech/ListenButton";
 import { useLibrary, useStudy, useWeakWords } from "@/services/library";
 import { useSpeech } from "@/services/speech";
 import { Button, ButtonKind, Empty, Screen } from "@/ui/components";
@@ -130,7 +131,14 @@ function RecallCard(props: { card: Card; reverse: boolean; intervals?: Record<Ra
         <>
           <Face>
             {reverse ? english : turkish}
-            {card.exampleEn && <Small text={card.exampleEn} />}
+            {card.exampleEn && (
+              <View style={styles.example}>
+                <View style={styles.exampleText}>
+                  <Small text={card.exampleEn} />
+                </View>
+                {speech.available && <ListenButton text={card.exampleEn} onSpeak={speech.speak} />}
+              </View>
+            )}
             {card.exampleTr && <Small text={card.exampleTr} />}
           </Face>
           <View style={styles.ratings}>
@@ -205,6 +213,8 @@ const styles = StyleSheet.create({
   face: { borderRadius: RADIUS, padding: SPACE * 1.5, gap: SPACE / 2, alignItems: "center" },
   big: { fontSize: 28, fontWeight: "600", textAlign: "center" },
   small: { fontSize: 15, textAlign: "center" },
+  example: { flexDirection: "row", alignItems: "center", gap: SPACE / 2 },
+  exampleText: { flexShrink: 1 },
   ratings: { flexDirection: "row", justifyContent: "space-between" },
   rating: { flex: 1, alignItems: "center" },
   input: { fontSize: 22, padding: 12, borderRadius: RADIUS, textAlign: "center" },

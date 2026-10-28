@@ -2,6 +2,8 @@ import type { Card } from "@dilkart/core";
 import { router } from "expo-router";
 import type { ReactElement } from "react";
 
+import { ListenButton } from "@/features/speech/ListenButton";
+import { useSpeech } from "@/services/speech";
 import { ListScreen, Row } from "@/ui/components";
 
 export function CardList(props: {
@@ -11,6 +13,7 @@ export function CardList(props: {
   footer?: ReactElement;
   onContentSizeChange?: () => void;
 }) {
+  const speech = useSpeech();
   const empty = props.cards.length === 0 ? props.empty : undefined;
   return (
     <ListScreen
@@ -21,6 +24,7 @@ export function CardList(props: {
           title={c.usageLabel ? `${c.front} · ${c.usageLabel}` : c.front}
           subtitle={c.meanings.map((m) => m.tr).join(", ")}
           onPress={() => router.push(`/card/${c.id}`)}
+          accessory={speech.available ? <ListenButton text={c.front} onSpeak={speech.speak} /> : undefined}
         />
       )}
       header={

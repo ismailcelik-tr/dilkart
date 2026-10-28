@@ -2,8 +2,10 @@ import { Direction, lookup, type Deck, type Recent, type Result, type Sense } fr
 import { useCallback, useEffect, useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
+import { ListenButton } from "@/features/speech/ListenButton";
 import { useDictionary, useLibrary } from "@/services/library";
 import { lastDirection, rememberDeck, rememberDirection } from "@/services/prefs";
+import { useSpeech } from "@/services/speech";
 import { targetDeck } from "@/services/targetDeck";
 import { Button, Empty, Group, Row, Screen } from "@/ui/components";
 import { RADIUS, SPACE, useTheme } from "@/ui/theme";
@@ -27,6 +29,7 @@ export function DictionaryScreen() {
   const lib = useLibrary();
   const { dictionary, recent } = useDictionary();
   const theme = useTheme();
+  const speech = useSpeech();
   const [query, setQuery] = useState("");
   const [direction, setDirection] = useState<Direction>();
   const [results, setResults] = useState<Result[]>([]);
@@ -151,7 +154,16 @@ export function DictionaryScreen() {
       ) : results.length === 0 ? (
         <Empty text="Sonuç yok" />
       ) : (
-        results.map((r) => <Entry key={r.id} result={r} onAdd={(sense) => add({ result: r, sense })} onChoose={(sense) => pickDeck({ result: r, sense })} />)
+        results.map((r) => (
+          <Entry
+            key={r.id}
+            result={r}
+            englishHeadword={direction !== Direction.TrEn}
+            onSpeak={speech.available ? speech.speak : undefined}
+            onAdd={(sense) => add({ result: r, sense })}
+            onChoose={(sense) => pickDeck({ result: r, sense })}
+          />
+        ))
       )}
     </Screen>
   );
@@ -173,21 +185,31 @@ function RecentList(props: { recents: Recent[]; onPick: (r: Recent) => void; onC
   );
 }
 
-function Entry(props: { result: Result; onAdd: (s: Sense) => void; onChoose: (s: Sense) => void }) {
-  const { result } = props;
+function Entry(props: {
+  result: Result;
+  englishHeadword: boolean;
+  onSpeak?: (text: string) => void;
+  onAdd: (s: Sense) => void;
+  onChoose: (s: Sense) => void;
+}) {
+  const { result, englishHeadword, onSpeak } = props;
   const theme = useTheme();
   return (
     <View style={[styles.entry, { backgroundColor: theme.surface }]}>
-      <Text style={[styles.headword, { color: theme.text }]}>
-        {result.headword}
-        {result.pos && <Text style={{ color: theme.secondary }}> · {result.pos}</Text>}
-      </Text>
+      <View style={styles.line}>
+        <Text style={[styles.headword, styles.grow, { color: theme.text }]}>
+          {result.headword}
+          {result.pos && <Text style={{ color: theme.secondary }}> · {result.pos}</Text>}
+        </Text>
+        {onSpeak && englishHeadword && <ListenButton text={result.headword} onSpeak={onSpeak} />}
+      </View>
       {result.senses.map((s) => (
         <View key={s.id} style={styles.sense}>
           <View style={styles.senseText}>
             <Text style={[styles.body, { color: theme.text }]}>{s.gloss}</Text>
             {s.context && <Text style={[styles.caption, { color: theme.secondary }]}>{s.context}</Text>}
           </View>
+          {onSpeak && !englishHeadword && <ListenButton text={s.gloss} onSpeak={onSpeak} />}
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={`Karta ekle: ${s.gloss}`}
@@ -203,10 +225,13 @@ function Entry(props: { result: Result; onAdd: (s: Sense) => void; onChoose: (s:
       ))}
       {result.examples.slice(0, MAX_EXAMPLES).map((e, i) => (
         // Sources can repeat a sentence, so the text alone is not a unique key.
-        <Text key={`${i}:${e.en}`} style={[styles.caption, { color: theme.secondary }]}>
-          {e.en}
-          {e.tr ? ` — ${e.tr}` : ""}
-        </Text>
+        <View key={`${i}:${e.en}`} style={styles.line}>
+          <Text style={[styles.caption, styles.grow, { color: theme.secondary }]}>
+            {e.en}
+            {e.tr ? ` — ${e.tr}` : ""}
+          </Text>
+          {onSpeak && <ListenButton text={e.en} onSpeak={onSpeak} />}
+        </View>
       ))}
       {result.synonyms.length > 0 && (
         <Text style={[styles.caption, { color: theme.secondary }]}>Eş anlamlılar: {result.synonyms.join(", ")}</Text>
@@ -226,6 +251,8 @@ const styles = StyleSheet.create({
   headword: { fontSize: 20, fontWeight: "600" },
   sense: { flexDirection: "row", alignItems: "center", gap: SPACE / 2 },
   senseText: { flex: 1 },
+  line: { flexDirection: "row", alignItems: "center", gap: SPACE / 2 },
+  grow: { flex: 1 },
   body: { fontSize: 17 },
   caption: { fontSize: 13 },
   add: { width: ADD_SIZE, height: ADD_SIZE, borderRadius: ADD_SIZE / 2, borderWidth: 1.5, alignItems: "center", justifyContent: "center" },
