@@ -45,7 +45,7 @@ Tarih: 28 Eki 2026 · Durum: onaylandı
     "decks": [{ "id": "…", "name": "Fiiller", "cards": [{
       "id": "…", "front": "go", "usageLabel": null, "meanings": [{ "tr": "gitmek" }],
       "exampleEn": null, "exampleTr": null, "isWeak": false }] }],
-    "reviews": [{ "cardId": "…", "reviewedAt": "…", "rating": 3, "mode": 0 }]
+    "reviews": [{ "cardId": "…", "reviewedAt": "…", "rating": 3 }]
   }
   ```
 

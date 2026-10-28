@@ -9,8 +9,8 @@ Seçilen ad: **dilkart**. Kod lisansı: MIT. Sözlük paketi: CC BY-SA 4.0.
 
 - **Mimari:** Tek Expo (React Native + TypeScript) uygulaması iOS, Android ve
   statik web çıktısı üretir. Kullanıcı verisi cihazda SQLite'ta, sözlük ayrı
-  salt okunur SQLite paketinde. Supabase (Free) yalnızca Auth + Postgres + tek
-  Edge Function. Fly.io yalnızca web'in statik dosyalarını sunar. Kendi
+  salt okunur SQLite paketinde. Supabase (Free) yalnızca Auth + Postgres
+  (hesap silme SQL fonksiyonu, ADR 0011). Fly.io yalnızca web'in statik dosyalarını sunar. Kendi
   backend API'miz yok.
 - **Sözlük:** Tamamen açık lisanslı kaynaklardan derlenen, uygulamayla gelen
   çevrimdışı paket: Vikisözlük (EN→TR), İngilizce Vikisözlük (TR→EN +
@@ -68,7 +68,7 @@ flowchart LR
   subgraph SB[Supabase Free]
     AUTH[Auth + Gmail SMTP]
     PG[(Postgres + RLS)]
-    EF[Edge Function<br/>delete-account]
+    EF[delete_account()<br/>SQL fonksiyonu]
   end
   GHR[GitHub Releases<br/>sözlük paketi · CC BY-SA] -.->|paket güncellemesi| DDB
   GHA[GitHub Actions] -->|şifreli pg_dump| BK[(Private yedek reposu)]
@@ -88,7 +88,7 @@ supabase-js). UI hiçbir zaman sürücüye doğrudan gitmez.
 | Algoritma | **FSRS (ts-fsrs, MIT, FSRS-6)**, cihazda | Daha az tekrarla aynı hatırlama; parametrelenebilir hedef hatırlama oranı; deterministik → test ve yeniden hesaplama kolay | SM-2: basit ama sabit çarpanlar, kötü kart "ease hell" sorunu |
 | TTS | **expo-speech (cihaz TTS)** | Ücretsiz, çevrimdışı (iOS'ta yüklü sesler), lisans sorunu yok | Bulut TTS (kart ister); Wiktionary ses dosyaları (20 GB, karışık lisans) |
 | Bildirim | **expo-notifications, yalnızca yerel** | Hatırlatma için sunucu gerekmez | Sunucu push (altyapı, token yönetimi; MVP'de gereksiz) |
-| Sunucu mantığı | **Tek Edge Function: `delete-account`** | service_role gerektiren tek iş; dışa aktarma RLS ile istemcide yapılır | Ayrı API servisi |
+| Sunucu mantığı | **SQL fonksiyonu `delete_account()`** (ADR 0011; Edge Function'ın yerine) | `auth.users` cascade; `service_role` ve ayrı dağıtım yok; dışa aktarma istemcide | Edge Function (`auth.admin.deleteUser`), ayrı API servisi |
 | Web barındırma | **Fly.io, Caddy ile statik**, `auto_stop_machines` | Senin tercihin; maliyet ≈0 | Taşınma yolu: aynı `dist/` → Cloudflare Pages / GitHub Pages |
 | Sözlük build | **Python (uv) ETL betikleri** | Büyük JSONL işleme; backend/AI rotana uygun | Node (aynı dil ama veri işleme ekosistemi zayıf) |
 | Mobil build | **EAS Build (Free: ayda 15 iOS)** + gerektiğinde `eas build --local` | TestFlight'a `eas submit`; kota yeterli | Yalnız Xcode (imza/upload el işi) |
@@ -332,10 +332,10 @@ yalnız `app_config` okur):
 
 - RPC'ler `SECURITY INVOKER` → RLS içeride de geçerli; `user_id` istemciden
   alınmaz, `auth.uid()`'den yazılır.
-- Kalıcı silme yalnız `delete-account` Edge Function'da: JWT doğrulanır,
-  `auth.admin.deleteUser(uid)`; tüm tablolar `ON DELETE CASCADE`.
-- Veri dışa aktarma: istemci kendi verisini JSON olarak indirir (RLS yeter,
-  sunucu kodu yok).
+- Kalıcı silme yalnız `public.delete_account()`'ta (`SECURITY DEFINER`, ADR 0011):
+  `auth.users`'tan `auth.uid()` satırı; tüm tablolar `ON DELETE CASCADE`.
+- Veri dışa aktarma: web'de istemci yerel veritabanını JSON olarak indirir
+  (sunucu kodu yok).
 - Sırlar: istemcide yalnız Supabase URL + publishable key. `service_role`
   yalnız Supabase'in Edge Function ortamında. GitHub secrets: `FLY_API_TOKEN`
   (uygulamaya kısıtlı deploy token, 1 yıl; 28 Eki 2027'de yenilenir), yedek reposunda DB bağlantı dizesi.
@@ -368,7 +368,6 @@ yalnız `app_config` okur):
 | Supabase DB | 500 MB | Ortalama kullanıcı (1k kart, 10k log) ≈ 1,5 MB → 150 MB | Rahat; **ağır kullanıcı (20k kart, 500k log) ≈ 100 MB → 5 ağır kullanıcı sınırı zorlar** |
 | Supabase egress | 5 GB/ay | Delta sync KB düzeyinde; sözlük Supabase'ten indirilmez | Rahat |
 | Supabase Auth MAU | 50k | ≤100 | Rahat |
-| Edge Function | 500k çağrı/ay | Yalnız hesap silme | Rahat |
 | EAS Build | 15 iOS/ay | Haftada 1–2 TestFlight | Rahat |
 | EAS Update | 1.000 MAU | ≤100 | Rahat |
 | GitHub Actions | Public repoda sınırsız; private yedek reposu 2.000 dk + 500 MB | Haftalık yedek ~2 dk, dump ≤50 MB × 8 hafta | Rahat |
@@ -419,8 +418,8 @@ Her aşama sonunda: testler yeşil → commit + push (isim onayından sonra
 beklemeden). Hesap gereken aşamadan önce senden yeni hesap açman istenir.
 
 Durum (28 Eki 2026): Aşama 0–8 bitti.
-Aşama 9a (web'de deste/kart yönetimi + toplu ekleme) ve 9b (Fly'da yayın, https://dilkart.fly.dev)
-bitti; sıradaki 9c (hesap silme + dışa aktarma).
+Aşama 9 bitti: 9a (web'de deste/kart yönetimi + toplu ekleme), 9b (Fly'da yayın,
+https://dilkart.fly.dev), 9c (hesap silme + web'de dışa aktarma); sıradaki Aşama 10.
 
 | # | Aşama | Amaç / işler | Bağımlılık | Bitti sayılır |
 |---|---|---|---|---|
@@ -564,6 +563,9 @@ PoC'lerden aşamalara eklenenler (aynı gün onaylandı):
 - **Aşama 9b, Fly (28 Eki):** https://dilkart.fly.dev; Caddy + CSP (`worker-src blob:`
   expo-sqlite worker'ı için); web çıktısı `single`; `main`'de CI yeşilse deploy. Ayrıntı:
   `docs/superpowers/specs/2026-10-28-web-deploy-design.md`.
+- **Aşama 9c, hesap silme ve dışa aktarma (28 Eki):** silme web ve telefonda, sunucuda
+  `delete_account()` (ADR 0011); dışa aktarma yalnız web, telefonda yönlendirme notu. Ayrıntı:
+  `docs/superpowers/specs/2026-10-28-account-delete-export-design.md`.
 - **Aşama 10:** tablolara doğrudan yazma kapatılır, sync RPC'leri
   `SECURITY DEFINER` (ADR 0008).
 - **Aşama 11:** gömülü sözlük paketinin release build'de açılış süresi
