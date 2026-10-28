@@ -8,7 +8,7 @@ import { ErrorText, Group, Row, Screen, SwitchRow } from "@/ui/components";
 
 import { FIELDS, labelOf, type Field } from "./choices";
 
-const STUDY: Field[] = ["newPerDay", "reviewsPerDay", "dayStartHour"];
+const STUDY: Field[] = ["newPerDay", "reviewsPerDay", "dayStartHour", "dailyGoal"];
 
 export function SettingsScreen() {
   const settings = useSettings();

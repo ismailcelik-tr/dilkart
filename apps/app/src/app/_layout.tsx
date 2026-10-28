@@ -72,6 +72,7 @@ export default function RootLayout() {
             <Stack.Screen name="settings/index" options={{ title: "Ayarlar" }} />
             <Stack.Screen name="settings/choose" options={{ title: "" }} />
             <Stack.Screen name="weak/suggestions" options={{ title: "Zayıf kelime önerileri" }} />
+            <Stack.Screen name="stats/index" options={{ title: "İstatistikler" }} />
             <Stack.Screen name="account/index" options={{ title: "Hesap" }} />
             <Stack.Screen
               name="account/sign-up"

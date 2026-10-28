@@ -8,6 +8,7 @@ const LIGHT = {
   secondary: "#6E6E73",
   tint: "#007AFF",
   danger: "#FF3B30",
+  success: "#34C759",
   separator: "#C6C6C8",
 };
 
@@ -18,6 +19,7 @@ const DARK: typeof LIGHT = {
   secondary: "#98989F",
   tint: "#0A84FF",
   danger: "#FF453A",
+  success: "#30D158",
   separator: "#38383A",
 };
 

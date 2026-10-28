@@ -76,7 +76,13 @@ export function Group({ title, children }: { title?: string; children: ReactNode
   );
 }
 
-export function Row(props: { title: string; subtitle?: string; selected?: boolean; onPress: () => void }) {
+export function Row(props: {
+  title: string;
+  subtitle?: string;
+  selected?: boolean;
+  onPress: () => void;
+  children?: ReactNode;
+}) {
   const theme = useTheme();
   return (
     <Pressable
@@ -90,9 +96,21 @@ export function Row(props: { title: string; subtitle?: string; selected?: boolea
         {props.subtitle !== undefined && (
           <Text style={[styles.caption, { color: theme.secondary }]}>{props.subtitle}</Text>
         )}
+        {props.children}
       </View>
       {props.selected && <Text style={[styles.body, { color: theme.tint }]}>✓</Text>}
     </Pressable>
+  );
+}
+
+/** Read-only row: title left, value right. */
+export function InfoRow({ title, value }: { title: string; value: string }) {
+  const theme = useTheme();
+  return (
+    <View style={[styles.row, { borderBottomColor: theme.separator }]}>
+      <Text style={[styles.body, styles.rowText, { color: theme.text }]}>{title}</Text>
+      <Text style={[styles.body, { color: theme.secondary }]}>{value}</Text>
+    </View>
   );
 }
 

@@ -1,4 +1,4 @@
-import { Library, LocalStore, RecentSearches, Settings, Study, WeakWords, type SqlReader, type UserSettings } from "@dilkart/core";
+import { Library, LocalStore, RecentSearches, Settings, Stats, Study, WeakWords, type SqlReader, type UserSettings } from "@dilkart/core";
 // Test-only helper; not part of the core package surface.
 import { testDriver } from "@dilkart/core/src/sync/testDriver";
 import { DatabaseSync, type SQLInputValue } from "node:sqlite";
@@ -28,6 +28,7 @@ export async function testData(changes: Partial<UserSettings> = {}, name = "test
     settings,
     study: new Study(store, library, db, settings),
     weak: new WeakWords(store, library),
+    stats: new Stats(store, library, settings),
     recent: new RecentSearches(db),
     dictionary: async () => reader,
   };

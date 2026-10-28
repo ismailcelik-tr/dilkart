@@ -1,4 +1,4 @@
-import { UNLIMITED } from "@dilkart/core";
+import { GOAL_OFF, UNLIMITED } from "@dilkart/core";
 import { fireEvent, renderRouter, screen, waitFor } from "expo-router/testing-library";
 import { Appearance } from "react-native";
 
@@ -24,6 +24,17 @@ describe("settings", () => {
     expect(screen.getByText("200")).toBeOnTheScreen();
     expect(screen.getByText("04:00")).toBeOnTheScreen();
     expect(screen.getByText("ABD")).toBeOnTheScreen();
+    expect(screen.getByText("Günlük hedef")).toBeOnTheScreen();
+    expect(screen.getByText("50")).toBeOnTheScreen();
+  });
+
+  it("turns the daily goal off", async () => {
+    await renderRouter(APP, { initialUrl: "/settings" });
+    await fireEvent.press(await screen.findByText("Günlük hedef"));
+    await fireEvent.press(await screen.findByText("Kapalı"));
+
+    await waitFor(async () => expect((await data.settings.get()).dailyGoal).toBe(GOAL_OFF));
+    expect(await screen.findByText("Kapalı")).toBeOnTheScreen();
   });
 
   it("saves a picked value and shows it", async () => {
@@ -31,7 +42,7 @@ describe("settings", () => {
     await fireEvent.press(await screen.findByText("Günlük yeni kart"));
     await fireEvent.press(await screen.findByText("30"));
 
-    await waitFor(() => expect(screen.queryByText("50")).toBeNull());
+    await waitFor(() => expect(screen.queryByText("5")).toBeNull());
     expect(await screen.findByText("30")).toBeOnTheScreen();
     expect((await data.settings.get()).newPerDay).toBe(30);
   });

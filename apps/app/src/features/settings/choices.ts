@@ -1,4 +1,4 @@
-import { Accent, UNLIMITED, type UserSettings } from "@dilkart/core";
+import { Accent, GOAL_OFF, UNLIMITED, type UserSettings } from "@dilkart/core";
 
 export type Field = keyof UserSettings;
 
@@ -17,6 +17,10 @@ export const FIELDS: Record<Field, { title: string; choices: Choice[] }> = {
     choices: [...numbers([50, 100, 200, 500]), { value: UNLIMITED, label: "Sınırsız" }],
   },
   dayStartHour: { title: "Gün başlangıcı", choices: [0, 1, 2, 3, 4, 5, 6].map((h) => ({ value: h, label: hour(h) })) },
+  dailyGoal: {
+    title: "Günlük hedef",
+    choices: [{ value: GOAL_OFF, label: "Kapalı" }, ...numbers([20, 50, 100, 200])],
+  },
   accent: {
     title: "Aksan",
     choices: [
