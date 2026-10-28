@@ -3,7 +3,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { beforeEach, describe, expect, it } from "vitest";
 
+import { dayKey } from "../fsrs/day";
 import { decode, encode } from "./hlc";
+import { uuidv7 } from "./id";
 import { LOCAL_SCHEMA_VERSION, LocalStore, mappedColumns, SETTINGS_ID, Table } from "./localStore";
 import { testDriver } from "./testDriver";
 
@@ -174,7 +176,8 @@ describe("LocalStore migrations", () => {
     await a.write(Table.Decks, DECK, { name: "eski" });
     await old.exec(
       "DROP INDEX cards_deck; DROP TABLE recent_searches; DROP INDEX cards_dict_sense; DROP TABLE outbox_failed; " +
-        "ALTER TABLE cards DROP COLUMN weak_since; PRAGMA user_version = 1",
+        "ALTER TABLE cards DROP COLUMN weak_since; ALTER TABLE user_settings DROP COLUMN daily_goal; " +
+        "PRAGMA user_version = 1",
     );
     old.close();
 
@@ -250,5 +253,44 @@ describe("LocalStore.counts", () => {
     const [first] = await store.pending(1);
     await store.fail(first?.seq ?? 0, "bad");
     expect(await store.counts()).toEqual({ pending: 1, failed: 1 });
+  });
+});
+
+describe("LocalStore.answersPerDay", () => {
+  // 04:00 Istanbul = 01:00Z; server rows come back with an offset and microseconds.
+  const TIMES = [
+    "2026-10-25T00:59:00Z",
+    "2026-10-25T01:00:00Z",
+    "2026-10-25T09:00:00.123Z",
+    "2026-10-25T12:00:00+03:00",
+    "2026-10-25T09:00:00.123456+00:00",
+  ];
+
+  const stored = async () => {
+    const store = new LocalStore(testDriver(), NODE);
+    await store.open();
+    for (const t of TIMES) {
+      await store.append(uuidv7(), { card_id: "c", reviewed_at: t, rating: 3 });
+    }
+    return store;
+  };
+
+  it("puts an answer a minute before the day start in the previous day", async () => {
+    const today = dayKey("2026-10-25T09:00:00Z", 4, 180);
+    expect(await (await stored()).answersPerDay(4, 180)).toEqual([
+      { day: today - 1, count: 1 },
+      { day: today, count: 4 },
+    ]);
+  });
+
+  it("agrees with dayKey in another zone and day start", async () => {
+    const expected = new Map<number, number>();
+    for (const t of TIMES) {
+      const k = dayKey(t, 0, -300);
+      expected.set(k, (expected.get(k) ?? 0) + 1);
+    }
+    expect(await (await stored()).answersPerDay(0, -300)).toEqual(
+      [...expected].sort(([a], [b]) => a - b).map(([day, count]) => ({ day, count })),
+    );
   });
 });

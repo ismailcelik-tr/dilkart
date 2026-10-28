@@ -4,7 +4,7 @@ import { reviewsOf } from "../data/reviews";
 import { Settings } from "../data/settings";
 import { WeakWords } from "../data/weakWords";
 import type { SqlReader } from "../dictionary/lookup";
-import { dayKey, dayStart } from "../fsrs/day";
+import { dayKey, dayStart, deviceOffset } from "../fsrs/day";
 import { schedules, type Module, type SessionKind } from "../fsrs/policy";
 import { CardState, Rating, Scheduler, type FsrsState } from "../fsrs/scheduler";
 import { uuidv7 } from "../sync/id";
@@ -27,9 +27,6 @@ const RATINGS = [Rating.Again, Rating.Hard, Rating.Good, Rating.Easy];
 const isLearning = (s: FsrsState) => s.state === CardState.Learning || s.state === CardState.Relearning;
 const byDue = (a: Card, b: Card) => (a.fsrs?.due ?? "").localeCompare(b.fsrs?.due ?? "");
 const byCreation = (a: Card, b: Card) => a.id.localeCompare(b.id);
-
-/** Device minutes east of UTC, the review_logs.tz_offset_min convention. */
-const deviceOffset = () => -new Date().getTimezoneOffset();
 
 export class Study {
   private readonly scheduler: Scheduler;

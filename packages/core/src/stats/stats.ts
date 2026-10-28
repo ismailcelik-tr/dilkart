@@ -7,6 +7,11 @@ export interface DayContext {
   tzOffsetMin: number;
 }
 
+export interface Retention {
+  rate: number;
+  total: number;
+}
+
 export interface StateCounts {
   new: number;
   learning: number;
@@ -19,6 +24,9 @@ const HISTORY_DAYS = 30;
 const FORECAST_DAYS = 7;
 // Anki's convention for a well-learned card.
 const MATURE_STABILITY_DAYS = 21;
+// 1970-01-01, day 0, was a Thursday.
+const EPOCH_WEEKDAY = 4;
+const DAYS_PER_WEEK = 7;
 
 // Retention does not change state transitions, so the default scheduler suffices.
 const scheduler = new Scheduler();
@@ -39,7 +47,7 @@ export function dailyCounts(reviews: Review[], now: string, ctx: DayContext, day
 }
 
 /** Share of non-Again answers on cards in review state; null without such answers. */
-export function retention(reviewsByCard: Review[][], now: string, days: number): { rate: number; total: number } | null {
+export function retention(reviewsByCard: Review[][], now: string, days: number): Retention | null {
   const since = Date.parse(now) - days * MS_PER_DAY;
   const answers = reviewsByCard
     .flatMap((reviews) => scheduler.history(reviews))
@@ -55,19 +63,25 @@ export function retention(reviewsByCard: Review[][], now: string, days: number):
 /** Consecutive study days; today's streak survives until today ends. */
 export function streak(reviews: Review[], now: string, ctx: DayContext): { current: number; longest: number } {
   const studied = [...new Set(reviews.map((r) => day(r.reviewedAt, ctx)))].sort((a, b) => a - b);
+  return streakOfDays(studied, day(now, ctx));
+}
 
+/** `streak` on ascending, distinct study days. */
+export function streakOfDays(days: number[], today: number): { current: number; longest: number } {
   let longest = 0;
   let run = 0;
-  for (const [i, d] of studied.entries()) {
-    run = i > 0 && d - (studied[i - 1] ?? 0) === 1 ? run + 1 : 1;
+  for (const [i, d] of days.entries()) {
+    run = i > 0 && d - (days[i - 1] ?? 0) === 1 ? run + 1 : 1;
     longest = Math.max(longest, run);
   }
 
-  const last = studied.at(-1);
-  const today = day(now, ctx);
+  const last = days.at(-1);
   const current = last !== undefined && today - last <= 1 ? run : 0;
   return { current, longest };
 }
+
+/** Weekday of a study day; 0 = Sunday. */
+export const weekday = (day: number) => (day + EPOCH_WEEKDAY) % DAYS_PER_WEEK;
 
 export function stateCounts(states: (FsrsState | undefined)[]): StateCounts {
   const counts: StateCounts = { new: 0, learning: 0, review: 0, mature: 0 };

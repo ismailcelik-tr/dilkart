@@ -98,6 +98,7 @@ const COLUMNS: Record<Table, Record<string, Kind>> = {
     day_start_hour: Kind.Int,
     desired_retention: Kind.Real,
     tts_accent: Kind.Text,
+    daily_goal: Kind.Int,
   },
 };
 
@@ -123,6 +124,7 @@ const MIGRATIONS = [
    CREATE INDEX cards_dict_sense ON cards (dict_sense_id);`,
   `CREATE TABLE outbox_failed (seq INTEGER PRIMARY KEY, op TEXT NOT NULL, error TEXT NOT NULL, failed_at TEXT NOT NULL);`,
   `ALTER TABLE cards ADD COLUMN weak_since TEXT;`,
+  `ALTER TABLE user_settings ADD COLUMN daily_goal INTEGER;`,
 ];
 
 export const LOCAL_SCHEMA_VERSION = MIGRATIONS.length;
@@ -138,6 +140,10 @@ const FSRS_STATE = "fsrs_state";
 const HLC_KEY = "hlc";
 const NODE_KEY = "node";
 const CURSOR_KEY = "cursor";
+
+const SECONDS_PER_MINUTE = 60;
+const SECONDS_PER_HOUR = 3_600;
+const SECONDS_PER_DAY = 86_400;
 
 const isLww = (table: Table) => table !== Table.ReviewLogs;
 
@@ -271,6 +277,17 @@ export class LocalStore {
   async select(table: Table, where: string, params: unknown[]): Promise<Values[]> {
     const rows = await this.db.all<Values>(`SELECT * FROM ${table} WHERE ${where}`, params);
     return rows.map((row) => decodeRow(table, row));
+  }
+
+  /** Answers per study day, oldest first; `day` is `dayKey`'s number. */
+  answersPerDay(dayStartHour: number, tzOffsetMin: number): Promise<{ day: number; count: number }[]> {
+    // dayKey in SQL: whole seconds suffice, day boundaries fall on whole minutes.
+    const shift = tzOffsetMin * SECONDS_PER_MINUTE - dayStartHour * SECONDS_PER_HOUR;
+    return this.db.all<{ day: number; count: number }>(
+      `SELECT (CAST(strftime('%s', reviewed_at) AS INTEGER) + CAST(? AS INTEGER)) / ${SECONDS_PER_DAY} AS day, COUNT(*) AS count
+       FROM ${Table.ReviewLogs} GROUP BY day ORDER BY day`,
+      [shift],
+    );
   }
 
   async pending(limit: number): Promise<Pending[]> {

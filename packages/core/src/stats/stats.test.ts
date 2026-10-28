@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 
+import { dayKey } from "../fsrs/day";
 import { CardState, Rating, type FsrsState, type Review } from "../fsrs/scheduler";
-import { dailyCounts, forecast, retention, stateCounts, streak, type DayContext } from "./stats";
+import { dailyCounts, forecast, retention, stateCounts, streak, streakOfDays, weekday, type DayContext } from "./stats";
 
 const ISTANBUL: DayContext = { dayStartHour: 4, tzOffsetMin: 180 };
 const NOW = "2026-10-25T09:00:00Z"; // 12:00 local
@@ -100,5 +101,24 @@ describe("forecast", () => {
       undefined,
     ];
     expect(forecast(states, NOW, ISTANBUL)).toEqual([2, 1, 0, 0, 0, 0, 1]);
+  });
+});
+
+describe("streakOfDays", () => {
+  it("counts the run ending today or yesterday", () => {
+    expect(streakOfDays([8, 9, 10], 10)).toEqual({ current: 3, longest: 3 });
+    expect(streakOfDays([8, 9, 10], 11)).toEqual({ current: 3, longest: 3 });
+  });
+
+  it("breaks after a missed day and keeps the longest", () => {
+    expect(streakOfDays([1, 2, 3, 4, 8, 9], 12)).toEqual({ current: 0, longest: 4 });
+    expect(streakOfDays([], 12)).toEqual({ current: 0, longest: 0 });
+  });
+});
+
+describe("weekday", () => {
+  it("names the study day's weekday, Sunday = 0", () => {
+    expect(weekday(dayKey("2026-10-27T09:00:00Z", 4, 180))).toBe(2); // Tuesday
+    expect(weekday(dayKey("2026-10-27T00:30:00Z", 4, 180))).toBe(1); // 03:30 Tuesday is still Monday
   });
 });

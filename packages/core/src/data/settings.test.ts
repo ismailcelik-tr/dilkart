@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import { LocalStore } from "../sync/localStore";
 import { testDriver } from "../sync/testDriver";
-import { Accent, DEFAULT_SETTINGS, Settings, UNLIMITED } from "./settings";
+import { Accent, DEFAULT_SETTINGS, GOAL_OFF, Settings, UNLIMITED } from "./settings";
 
 let store: LocalStore;
 let settings: Settings;
@@ -14,6 +14,12 @@ beforeEach(async () => {
 });
 
 describe("Settings", () => {
+  it("defaults the daily goal to 50 and stores it off", async () => {
+    expect((await settings.get()).dailyGoal).toBe(50);
+    await settings.set({ dailyGoal: GOAL_OFF });
+    expect((await settings.get()).dailyGoal).toBe(GOAL_OFF);
+  });
+
   it("returns the defaults when nothing is set", async () => {
     expect(await settings.get()).toEqual(DEFAULT_SETTINGS);
   });

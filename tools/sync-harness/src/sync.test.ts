@@ -3,7 +3,7 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { rpcRemote, Scheduler, SCHEMA_VERSION, Table, UpgradeRequired, uuidv7 } from "@dilkart/core";
+import { rpcRemote, Scheduler, SCHEMA_VERSION, SETTINGS_ID, Table, UpgradeRequired, uuidv7 } from "@dilkart/core";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { describe, expect, it } from "vitest";
 
@@ -292,5 +292,18 @@ describe("weak words", () => {
     expect(Date.parse(String(local?.weak_since))).toBe(Date.parse(since));
     const [remote] = await server(client, Table.Cards, "weak_since");
     expect(Date.parse(String(remote?.weak_since))).toBe(Date.parse(since));
+  });
+});
+
+describe("daily goal", () => {
+  it("carries the goal to the other device", async () => {
+    const { client, web, phone } = await twoDevices();
+    await web.store.write(Table.Settings, SETTINGS_ID, { daily_goal: 100 });
+    await web.sync();
+    await phone.sync();
+
+    expect((await phone.store.read(Table.Settings, SETTINGS_ID))?.daily_goal).toBe(100);
+    const [remote] = await server(client, Table.Settings, "daily_goal");
+    expect(remote?.daily_goal).toBe(100);
   });
 });

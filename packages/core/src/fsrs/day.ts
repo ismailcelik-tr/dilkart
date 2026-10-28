@@ -15,3 +15,6 @@ export function dayKey(at: Date | string, dayStartHour: number, tzOffsetMin: num
 export function dayStart(key: number, dayStartHour: number, tzOffsetMin: number): Date {
   return new Date(key * MS_PER_DAY + dayStartHour * MS_PER_HOUR - tzOffsetMin * MS_PER_MINUTE);
 }
+
+/** Device minutes east of UTC, the review_logs.tz_offset_min convention. */
+export const deviceOffset = () => -new Date().getTimezoneOffset();

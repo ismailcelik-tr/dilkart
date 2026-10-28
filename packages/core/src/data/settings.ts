@@ -9,11 +9,14 @@ export enum Accent {
 
 /** Stored for "no limit"; fits the smallint column. */
 export const UNLIMITED = 9999;
+/** Stored for "no daily goal". */
+export const GOAL_OFF = 0;
 
 export interface UserSettings {
   newPerDay: number;
   reviewsPerDay: number;
   dayStartHour: number;
+  dailyGoal: number;
   accent: Accent;
 }
 
@@ -21,6 +24,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
   newPerDay: 20,
   reviewsPerDay: 200,
   dayStartHour: 4,
+  dailyGoal: 50,
   accent: Accent.US,
 };
 
@@ -28,10 +32,11 @@ const COLUMN: Record<keyof UserSettings, string> = {
   newPerDay: "daily_new_limit",
   reviewsPerDay: "daily_review_limit",
   dayStartHour: "day_start_hour",
+  dailyGoal: "daily_goal",
   accent: "tts_accent",
 };
 
-type Limit = "newPerDay" | "reviewsPerDay" | "dayStartHour";
+type Limit = "newPerDay" | "reviewsPerDay" | "dayStartHour" | "dailyGoal";
 
 export class Settings {
   constructor(private readonly store: LocalStore) {}
@@ -44,6 +49,7 @@ export class Settings {
       newPerDay: num("newPerDay"),
       reviewsPerDay: num("reviewsPerDay"),
       dayStartHour: num("dayStartHour"),
+      dailyGoal: num("dailyGoal"),
       accent: Object.values(Accent).find((a) => a === row[COLUMN.accent]) ?? DEFAULT_SETTINGS.accent,
     };
   }
