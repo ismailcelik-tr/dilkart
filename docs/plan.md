@@ -419,7 +419,7 @@ Her aşama sonunda: testler yeşil → commit + push (isim onayından sonra
 beklemeden). Hesap gereken aşamadan önce senden yeni hesap açman istenir.
 
 Durum (28 Eki 2026): Aşama 0–8 bitti.
-Sıradaki: kart listesi ve sözlükte "Dinle" butonu, sonra Aşama 9 (web).
+Sıradaki: Aşama 9 (web).
 
 | # | Aşama | Amaç / işler | Bağımlılık | Bitti sayılır |
 |---|---|---|---|---|
@@ -553,6 +553,9 @@ PoC'lerden aşamalara eklenenler (aynı gün onaylandı):
   7 gün önceden planlanır, o gün çalışıldıysa bugünün bildirimi düşer; seri sürüyorsa metin
   seriyi söyler. İzin ana sayfa ilk açılışta bir kez. Ayrıntı:
   `docs/superpowers/specs/2026-10-28-reminders-design.md`.
+- **Dinle düğmeleri (28 Eki):** kart listesi, çalışmada örnek cümle ve sözlükte (EN başlık,
+  TR→EN'de İngilizce karşılık, örneklerin İngilizce kısmı) hoparlör. Ayrıntı:
+  `docs/superpowers/specs/2026-10-28-listen-design.md`.
 - **Aşama 10:** tablolara doğrudan yazma kapatılır, sync RPC'leri
   `SECURITY DEFINER` (ADR 0008).
 - **Aşama 11:** gömülü sözlük paketinin release build'de açılış süresi
