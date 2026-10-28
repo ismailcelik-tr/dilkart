@@ -419,7 +419,7 @@ Her aşama sonunda: testler yeşil → commit + push (isim onayından sonra
 beklemeden). Hesap gereken aşamadan önce senden yeni hesap açman istenir.
 
 Durum (28 Eki 2026): Aşama 0–8 bitti.
-Sıradaki: Aşama 9 (web).
+Aşama 9a (web'de deste/kart yönetimi + toplu ekleme) bitti; sıradaki 9b (Fly'da yayın).
 
 | # | Aşama | Amaç / işler | Bağımlılık | Bitti sayılır |
 |---|---|---|---|---|
@@ -556,6 +556,10 @@ PoC'lerden aşamalara eklenenler (aynı gün onaylandı):
 - **Dinle düğmeleri (28 Eki):** kart listesi, çalışmada örnek cümle ve sözlükte (EN başlık,
   TR→EN'de İngilizce karşılık, örneklerin İngilizce kısmı) hoparlör. Ayrıntı:
   `docs/superpowers/specs/2026-10-28-listen-design.md`.
+- **Aşama 9a, web (28 Eki):** web de yerel veritabanı + sync kullanır (ADR 0010; "uzak
+  repository" yerine); hesap zorunlu; çalışma, sözlük, istatistik, ayarlar web'de yok; desteler
+  toplu ekleme alır. Sunucu saati `server_time()` RPC'sinden. Ayrıntı:
+  `docs/superpowers/specs/2026-10-28-web-cards-design.md`.
 - **Aşama 10:** tablolara doğrudan yazma kapatılır, sync RPC'leri
   `SECURITY DEFINER` (ADR 0008).
 - **Aşama 11:** gömülü sözlük paketinin release build'de açılış süresi

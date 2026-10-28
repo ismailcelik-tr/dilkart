@@ -23,13 +23,22 @@ kartlar hesap sync'iyle telefona gider.
   giriş yap" ve "Giriş yap" gösterir. Web'de misafir modu yok.
 - **Web'de olmayanlar:** çalışma, sözlük, istatistik, zayıf kelimeler, hatırlatma. Giriş
   noktaları gizlenir (ana sayfa: "Tümünü çalış", seri satırı, zayıf şeridi, "İstatistikler";
-  deste: "Çalış"; başlık: "Sözlük"; Ayarlar: Çalışma, Ses, Bildirim grupları). Rotalar
-  `Stack.Protected` ile kapanır; doğrudan adres ana sayfaya döner.
-- **Web'de kalanlar:** desteler, kartlar, toplu ekleme, Hesap, Ayarlar'da koyu görünüm, Hakkında.
+  deste: "Çalış"; başlık: "Sözlük"; ana sayfa: "Ayarlar"). Rotalar `Stack.Protected` ile kapanır;
+  doğrudan adres ana sayfaya döner. Hakkında'da sözlük kaynakları bölümü web'de yok.
+- **Web'de kalanlar:** desteler, kartlar, toplu ekleme, Hesap, Hakkında.
+- **Görünüm (28 Eki deneme bulgusu):** react-native-web'de `Appearance.setColorScheme` yok; web
+  tarayıcının / sistemin temasını izler, "Koyu görünüm" anahtarı ve Ayarlar web'de yok. Görünüm
+  tercihi web'de `localStorage`'da (expo-sqlite'ın eşzamanlı çağrısı worker hazır olmadan zaman
+  aşımına düşüyordu).
+- **Sunucu saati (deneme bulgusu):** tarayıcı, başka kökenin `Date` başlığını göstermez; sync saati
+  `public.server_time()` RPC'sinden okur (migration `20261028120000`, prod'a uygulandı).
+- **Satır içi düğme:** web'de `Pressable` `<button>`; `Row.accessory` satırın düğmesinin dışında.
 - **Masaüstü:** içerik en fazla 640 px, ortalı.
-- **Başlıklar:** `expo-sqlite` web'de eşzamanlı API'ler (`getItemSync`) için `SharedArrayBuffer`
-  ister: `Cross-Origin-Opener-Policy: same-origin`, `Cross-Origin-Embedder-Policy:
-  require-corp`. Geliştirmede Metro ara katmanı, yayında Caddy (9b).
+- **Başlıklar:** `expo-sqlite` web'de `SharedArrayBuffer` için `Cross-Origin-Opener-Policy:
+  same-origin`, `Cross-Origin-Embedder-Policy: require-corp`. Geliştirmede Metro ara katmanı,
+  yayında Caddy (9b).
+- **Web sürücüsü:** web'de `withExclusiveTransactionAsync` yok; `sqlDriver.web.ts` tüm sorguları
+  tek sıraya alır, transaction `BEGIN IMMEDIATE … COMMIT`.
 
 ## Toplu ekleme
 
@@ -46,10 +55,11 @@ kartlar hesap sync'iyle telefona gider.
 ## Mimari
 
 - Core `card/bulk.ts`: `parseBulk(text): BulkLine[]`, her satır `{ line, draft }` ya da
-  `{ line, errors: CardError[] }`. `planBulk(lines, existing: Card[], decks: Deck[])` → eklenecek
-  taslaklar, hatalar, tekrarlar (ad ve sebep). Saf; Vitest.
+  `{ line, errors: CardError[] }`. `planBulk(lines, existing)` → eklenecek taslaklar,
+  hatalı satırlar, tekrarlar (mevcut kart ya da önceki satır numarası; deste adını ekran
+  bulur). Saf; Vitest.
 - App `features/cards/BulkAddScreen.tsx` (ekran → `useLibrary`), rota `app/deck/[id]/bulk.tsx`.
-- `services/platform.ts`: `IS_WEB` (tek yerde `Platform.OS`).
+- `ui/platform.ts`: `IS_WEB` (tek yerde `Platform.OS`).
 - Sözlük paketi: `services/dictionaryPack.ts` / `.web.ts`.
 - `ui/components` `Screen`: web'de `maxWidth` + ortalama.
 - Metro: `server.enhanceMiddleware` ile COOP/COEP.
