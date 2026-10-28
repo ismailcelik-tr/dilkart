@@ -37,6 +37,8 @@ export type { UserSettings } from "./data/settings";
 export { RecentSearches } from "./data/recent";
 export type { Recent } from "./data/recent";
 export { adoptGuest } from "./data/adopt";
+export { exportData } from "./data/export";
+export type { Export, ExportCard } from "./data/export";
 export { WeakWords } from "./data/weakWords";
 export { Stats } from "./data/stats";
 export type { Report, Today } from "./data/stats";
