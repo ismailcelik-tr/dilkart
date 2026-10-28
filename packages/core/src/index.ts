@@ -18,6 +18,8 @@ export type { FsrsState, Review, Step } from "./fsrs/scheduler";
 export { dailyCounts, forecast, retention, stateCounts, streak, weekday } from "./stats/stats";
 export type { DayContext, Retention, StateCounts } from "./stats/stats";
 export { REMINDER_DAYS, reminderPlan } from "./stats/reminders";
+export { parseBulk, planBulk } from "./card/bulk";
+export type { BulkLine, BulkPlan } from "./card/bulk";
 export type { Reminder, ReminderInput } from "./stats/reminders";
 export { checkAnswer, Verdict } from "./text/answer";
 export type { Check } from "./text/answer";
