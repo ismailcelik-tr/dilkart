@@ -418,8 +418,8 @@ Her iş önce başarısız test, sonra kod (TDD). Katmanlar:
 Her aşama sonunda: testler yeşil → commit + push (isim onayından sonra
 beklemeden). Hesap gereken aşamadan önce senden yeni hesap açman istenir.
 
-Durum (28 Eki 2026): Aşama 0–7 bitti; Aşama 8'de Ayarlar, zayıf kelimeler ve istatistikler bitti.
-Sıradaki: hatırlatma bildirimi.
+Durum (28 Eki 2026): Aşama 0–8 bitti.
+Sıradaki: kart listesi ve sözlükte "Dinle" butonu, sonra Aşama 9 (web).
 
 | # | Aşama | Amaç / işler | Bağımlılık | Bitti sayılır |
 |---|---|---|---|---|
@@ -549,6 +549,10 @@ PoC'lerden aşamalara eklenenler (aynı gün onaylandı):
   (seri = ≥1 cevaplı gün) ve günlük cevap hedefi (`user_settings.daily_goal`, varsayılan 50,
   ilerleme çubuğu). Grafikler düz `View`. Ayrıntı:
   `docs/superpowers/specs/2026-10-27-stats-design.md`.
+- **Aşama 8, hatırlatma (28 Eki):** yalnız yerel bildirim; saat cihaza özel (varsayılan 20:00);
+  7 gün önceden planlanır, o gün çalışıldıysa bugünün bildirimi düşer; seri sürüyorsa metin
+  seriyi söyler. İzin ana sayfa ilk açılışta bir kez. Ayrıntı:
+  `docs/superpowers/specs/2026-10-28-reminders-design.md`.
 - **Aşama 10:** tablolara doğrudan yazma kapatılır, sync RPC'leri
   `SECURITY DEFINER` (ADR 0008).
 - **Aşama 11:** gömülü sözlük paketinin release build'de açılış süresi

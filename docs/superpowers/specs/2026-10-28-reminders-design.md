@@ -10,11 +10,13 @@ korumaya çağırmak.
 ## Kurallar
 
 - **Yalnız yerel:** `expo-notifications`, sunucu push yok (plan bölüm 4).
-- **Saat:** `Kapalı · 09:00 · 12:00 · 18:00 · 20:00 · 21:00 · 22:00`, varsayılan 20:00. Cihaza
-  özel (`prefs`), sync edilmez (plan bölüm 2). Seçeneklerin hepsi en geç gün başlangıcından
-  (06:00) sonra; "bugün" hep doğru gün.
+- **Saat:** `Kapalı · 09:00 · 12:00 · 18:00 · 20:00 · 21:00 · 22:00 · Özel…`, varsayılan 20:00.
+  Özel: iOS saat çarkı (`@expo/ui` `DatePicker`), dakika hassasiyeti (28 Eki ek karar). Cihaza
+  özel (`prefs`), sync edilmez (plan bölüm 2).
 - **Planlama:** bugünden başlayarak 7 çalışma günü, her gün seçilen saatte tek seferlik
-  bildirim. Çalışma günü `k`'nin bildirimi `dayStart(k) + (saat − dayStartHour)` anında.
+  bildirim. Çalışma günü `k`'nin bildirimi `dayStart(k) + ((dakika − dayStartHour·60) mod 1440)`
+  anında; gün başlangıcından önceki saat (ör. 01:30) o çalışma gününün gece yarısı sonrasına
+  düşer, "bugün" hep doğru gün.
   Bugünün bildirimi, bugün ≥1 cevap varsa ya da o an geçtiyse planlanmaz.
 - **Yeniden planlama:** tüm planlı bildirimler silinip 7 gün yeniden kurulur. Tetikleyiciler:
   uygulama ön plana gelir (`active`), arka plana geçer (`background`), veri açılır (giriş /
@@ -49,7 +51,7 @@ DataProvider (AppState active/background) ─────┴─ services/reminde
                                                                          └─ core: Stats, reminderPlan
 ```
 
-- **Core `stats/reminders.ts`:** saf `reminderPlan(input): Reminder[]`. Girdi `now`, `hour`,
+- **Core `stats/reminders.ts`:** saf `reminderPlan(input): Reminder[]`. Girdi `now`, `minute` (yerel gece yarısından dakika),
   `dayStartHour`, `tzOffsetMin`, `studied`, `streak`, `due: number[]`; çıktı
   `{ at: Date; title: string; body: string }[]` (≤7, artan). Kurallar ve metinler burada.
 - **Core `Stats.due(): Promise<number[]>`:** 7 günlük tahmin; yalnız kart durumları, log yok.
@@ -60,13 +62,14 @@ DataProvider (AppState active/background) ─────┴─ services/reminde
 - **Servis `services/reminders.ts`:** `refresh()` = `cancelAll` + (saat açık ve izin varsa)
   `reminderPlan` sonucu kadar `schedule`. `askOnce()` = izin `undetermined` ise iste, sonra
   `refresh()`. Hatalar yutulur ve `console.warn` ile yazılır; hatırlatma uygulamayı bozmaz.
-- **`prefs.ts`:** `reminderHour(): Promise<number | null>` (yoksa 20, `null` = kapalı),
-  `rememberReminderHour(hour | null)`.
+- **`prefs.ts`:** `reminderMinute(): Promise<number | null>` (yoksa 1200 = 20:00, `null` =
+  kapalı), `rememberReminderMinute(minute | null)`.
 - **Tetikleyiciler:** `DataProvider`'da `AppState` dinleyicisi (`active`, `background`) ve veri
   açılınca `refresh()`. Ana sayfa ilk yüklenince `askOnce()`.
 - **Ayarlar:** yeni "Bildirim" grubu, "Hatırlatma" satırı (alt yazı saat, "Kapalı" ya da
   izin uyarısı). `ChooseScreen` senkronize `UserSettings`'e bağlı; cihaza özel ayar için ayrı
-  küçük `ReminderScreen` (aynı `Row` listesi). Seçim sonrası `refresh()`.
+  küçük `ReminderScreen` (aynı `Row` listesi; en altta "Özel…": çark + "Kaydet"). Seçim
+  sonrası `refresh()`.
 - **Geliştirme:** `__DEV__` iken `ReminderScreen`'de "Test: 1 dk sonra" satırı, bugünkü metinle
   bir bildirimi 60 sn sonraya kurar (cihazda zamanlama denemesi için).
 - **Kurulum:** `app.json` `plugins`'e `expo-notifications`. Expo Go iOS'ta yerel bildirim

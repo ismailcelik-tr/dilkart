@@ -687,3 +687,14 @@ git push
 ```
 
 - [ ] **Step 5: Telefona release build** — `.env.local` prod olmalı; derleme + `devicectl` (`device-release-build.md`). `expo-notifications` eklentisi `aps-environment` yetkisi ekler; otomatik imzalama push yetkisini profile ekleyemezse derleme hatası Xcode'da "Push Notifications" yetkisi olarak görünür: dur ve kullanıcıya sor. Kurmadan önce `LC_ALL=C grep -a -c 'settings/reminder' …/DilKart.app/main.jsbundle` > 0. `expo run:ios` `package.json` script'lerini değiştirirse commit'ten önce geri al.
+
+---
+
+### Task 5: Özel saat (28 Eki ek karar)
+
+Spec güncellendi: saat dakika hassasiyetinde; listenin altında "Özel…" iOS saat çarkı açar.
+
+- Core: `ReminderInput.hour` → `minute`; an `dayStart(k) + ((minute − dayStartHour·60) mod 1440)`. `Stats.reminders(minute)`. Testler dakikayla; yeni: 07:45 ve gün başlangıcından önce 01:30 (çalışma gününün gece yarısı sonrası).
+- App: `prefs` `reminderMinute` / `rememberReminderMinute` (yeni anahtar `reminder.minute`, varsayılan 1200); servis `setReminderTime`, `ReminderStatus.minute`; `choices.ts` `clock(minute)` etiketi (`hour` yine özel); `ui/TimePicker.tsx` (`@expo/ui` `DatePicker`, `hourAndMinute`, `wheel`); `ReminderScreen` "Özel…" satırı + çark + "Kaydet".
+- Test: `reminders.test.tsx` `@/ui/TimePicker`'ı mock'lar (basınca 07:45); "Özel…" → çark → "Kaydet" → tüm bildirimler 07:45, Ayarlar "07:45".
+- Web hedefinde `@expo/ui` SwiftUI yok; Aşama 9'da `TimePicker.web.tsx` gerekir.
