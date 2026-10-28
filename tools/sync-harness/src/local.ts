@@ -24,8 +24,6 @@ function status(): Record<string, string> {
   return env;
 }
 
-export const apiUrl = () => status().API_URL ?? "";
-
 export function anonClient(): SupabaseClient {
   const { API_URL, PUBLISHABLE_KEY } = status();
   if (!API_URL || !PUBLISHABLE_KEY) {
@@ -87,11 +85,11 @@ export async function device(name: string, client?: SupabaseClient, opts: Device
   const store = new LocalStore(db, name, opts.now);
   await store.open();
 
-  let remote = client && rpcRemote(client, apiUrl());
+  let remote = client && rpcRemote(client);
   return {
     store,
     login: (c: SupabaseClient) => {
-      remote = rpcRemote(c, apiUrl());
+      remote = rpcRemote(c);
     },
     sync: async () => {
       if (remote === undefined) {

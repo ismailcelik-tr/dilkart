@@ -26,8 +26,7 @@ function failure(fn: string, error: { code?: string; message: string }, status: 
   return permanent ? new PermanentError(message) : new Error(message);
 }
 
-/** `url` is the project API URL; its auth health endpoint supplies the server clock. */
-export function rpcRemote(client: RpcClient, url: string, fetcher: typeof fetch = fetch): RemoteApi {
+export function rpcRemote(client: RpcClient): RemoteApi {
   const call = async (fn: string, args: Record<string, unknown>) => {
     const { data, error, status } = await client.rpc(fn, args);
     if (error) {
@@ -41,13 +40,6 @@ export function rpcRemote(client: RpcClient, url: string, fetcher: typeof fetch 
       await call("sync_push", { ops, schema_version: schemaVersion });
     },
     pull: async (since: number, page: number) => (await call("sync_pull", { since, page })) as RemoteRow[],
-    serverTime: async () => {
-      const response = await fetcher(`${url}/auth/v1/health`, { method: "HEAD" });
-      const date = response.headers.get("date");
-      if (date === null) {
-        throw new Error("server sent no Date header");
-      }
-      return Date.parse(date);
-    },
+    serverTime: async () => Number(await call("server_time", {})),
   };
 }

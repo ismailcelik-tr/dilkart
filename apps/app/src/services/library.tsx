@@ -5,7 +5,7 @@ import { Storage } from "expo-sqlite/kv-store";
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { AppState } from "react-native";
 
-import { createSupabase, supabaseUrl } from "@/drivers/supabase";
+import { createSupabase } from "@/drivers/supabase";
 
 import { GUEST_DB, userDb } from "./databases";
 import { deleteData, openData, type AppData } from "./openData";
@@ -141,7 +141,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
     if (data === undefined || uidOpen === undefined || supabase === undefined) {
       return;
     }
-    const svc = new SyncService(data.store, rpcRemote(supabase, supabaseUrl), data.study, setStatus);
+    const svc = new SyncService(data.store, rpcRemote(supabase), data.study, setStatus);
     service.current = svc;
     svc.start();
     busy.current = svc.run().then(() => offerGuestData(data, uidOpen, svc));

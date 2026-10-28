@@ -84,6 +84,9 @@ export class FakeSupabase {
     if (this.outage) {
       return { data: null, error: { message: "offline" }, status: 0 };
     }
+    if (fn === "server_time") {
+      return { data: Date.now(), error: null, status: 200 };
+    }
     if (fn === "sync_push") {
       this.pushed.push(...(args.ops as Op[]));
       return { data: (args.ops as Op[]).length, error: null, status: 200 };

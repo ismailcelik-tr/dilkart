@@ -7,7 +7,7 @@ import { rpcRemote, Scheduler, SCHEMA_VERSION, SETTINGS_ID, Table, UpgradeRequir
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { describe, expect, it } from "vitest";
 
-import { apiUrl, device, signUp } from "./local";
+import { device, signUp } from "./local";
 
 const T0 = 1_761_379_200_000;
 const STEP_MS = 1_000;
@@ -76,7 +76,7 @@ describe("idempotency", () => {
     await a.store.append(uuidv7(), log(card, 3));
 
     const ops = (await a.store.pending(10)).map((p) => p.op);
-    const remote = rpcRemote(client, apiUrl());
+    const remote = rpcRemote(client);
     for (let i = 0; i < 5; i++) {
       await remote.push(ops, SCHEMA_VERSION);
     }
@@ -199,7 +199,7 @@ describe("offline", () => {
     await a.store.write(Table.Decks, uuidv7(), { name: "d" });
     const ops = (await a.store.pending(10)).map((p) => p.op);
 
-    await expect(rpcRemote(client, apiUrl()).push(ops, SCHEMA_VERSION - 1)).rejects.toBeInstanceOf(UpgradeRequired);
+    await expect(rpcRemote(client).push(ops, SCHEMA_VERSION - 1)).rejects.toBeInstanceOf(UpgradeRequired);
     expect(await serverCount(client, Table.Decks)).toBe(0);
     expect(await a.store.pending(10)).toHaveLength(1);
   });

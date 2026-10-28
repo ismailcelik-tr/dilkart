@@ -36,7 +36,6 @@ beforeEach(() => {
     return data;
   });
   jest.mocked(deleteData).mockImplementation(async (name) => rmSync(pathOf(name), { force: true }));
-  jest.spyOn(global, "fetch").mockResolvedValue(new Response(null, { headers: { date: new Date().toUTCString() } }));
 });
 
 afterEach(() => jest.restoreAllMocks());

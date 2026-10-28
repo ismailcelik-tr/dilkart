@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(25);
+select plan(26);
 
 -- lww_merge(cur, clock, incoming, base, hlc)
 select is(
@@ -96,6 +96,8 @@ select is_empty('select * from public.sync_pull(0, 10)', 'B pulls nothing of A''
 select has_column('public', 'cards', 'weak_since', 'cards keeps when a card was marked weak');
 
 select has_column('public', 'user_settings', 'daily_goal', 'settings keep the daily answer goal');
+
+select ok(abs(public.server_time() - extract(epoch from clock_timestamp()) * 1000) < 5000, 'server_time is the server clock in ms');
 
 select * from finish();
 rollback;
