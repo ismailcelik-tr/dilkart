@@ -1,11 +1,11 @@
 import { CardError, type CardDraft } from "@dilkart/core";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
-import { Alert } from "react-native";
 
 import { useLibrary } from "@/services/library";
 import { rememberDeck } from "@/services/prefs";
 import { Button, ButtonKind, ErrorText, Field, Screen } from "@/ui/components";
+import { confirm } from "@/ui/confirm";
 import { goBack } from "@/ui/navigation";
 
 const MESSAGES: Record<CardError, string> = {
@@ -53,18 +53,14 @@ export function CardFormScreen({ cardId, deckId }: { cardId?: string; deckId?: s
     back();
   };
 
-  const remove = () =>
-    Alert.alert("Kartı sil", `${draft.front} silinecek.`, [
-      { text: "Vazgeç", style: "cancel" },
-      {
-        text: "Sil",
-        style: "destructive",
-        onPress: async () => {
-          await lib.removeCard(String(cardId));
-          back();
-        },
-      },
-    ]);
+  const remove = async () => {
+    if (!(await confirm("Kartı sil", `${draft.front} silinecek.`, "Sil"))) {
+      return;
+    }
+
+    await lib.removeCard(String(cardId));
+    back();
+  };
 
   const has = (e: CardError) => (errors.includes(e) ? MESSAGES[e] : undefined);
 

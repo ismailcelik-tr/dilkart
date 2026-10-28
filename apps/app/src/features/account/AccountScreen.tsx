@@ -1,9 +1,10 @@
 import { router } from "expo-router";
-import { Alert, Text } from "react-native";
+import { Text } from "react-native";
 
 import { useAccount } from "@/services/library";
 import { SyncProblem } from "@/services/syncService";
 import { Button, ButtonKind, Empty, ErrorText, Screen } from "@/ui/components";
+import { confirm } from "@/ui/confirm";
 import { useTheme } from "@/ui/theme";
 
 const PROBLEMS: Record<SyncProblem, string | undefined> = {
@@ -35,17 +36,15 @@ export function AccountScreen() {
 
   const { status } = account;
   const problem = PROBLEMS[status.problem];
-  const signOut = () =>
-    Alert.alert(
-      "Çıkış yap",
+  const signOut = async () => {
+    const message =
       status.pending > 0
         ? `${status.pending} değişiklik henüz gönderilmedi; çıkarsan bu değişiklikler kaybolur.`
-        : "Bu cihazdaki hesap verisi silinir; sunucudaki kartların kalır.",
-      [
-        { text: "Vazgeç", style: "cancel" },
-        { text: "Çıkış yap", style: "destructive", onPress: () => void account.signOut() },
-      ],
-    );
+        : "Bu cihazdaki hesap verisi silinir; sunucudaki kartların kalır.";
+    if (await confirm("Çıkış yap", message, "Çıkış yap")) {
+      await account.signOut();
+    }
+  };
 
   return (
     <Screen>
